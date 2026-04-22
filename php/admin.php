@@ -17,7 +17,13 @@ require_once __DIR__ . '/core/Response.php';
 require_once __DIR__ . '/core/Auth.php';
 require_once __DIR__ . '/models/User.php';
 
-sc_send_headers(false);
+// Security headers appropriate for an HTML page serving a JS SPA.
+// Do NOT use sc_send_headers() here — its default-src 'none' CSP is for
+// API (JSON) responses only and would block all scripts and styles.
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'");
 
 // Not installed yet — send to installer
 if (!file_exists(SC_INSTALLED_LOCK)) {

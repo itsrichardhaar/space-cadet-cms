@@ -126,10 +126,11 @@ class Auth {
     }
 
     private static function clearCookie(): void {
+        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
         setcookie(SC_SESSION_NAME, '', [
             'expires'  => time() - 3600,
             'path'     => '/',
-            'secure'   => true,
+            'secure'   => $secure,
             'httponly' => true,
             'samesite' => 'Strict',
         ]);
