@@ -18,11 +18,6 @@ define('SC_DEV', (
     in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1'], true)
 ));
 
-// Application secret — overwritten by install.php
-if (!defined('SC_SECRET')) {
-    define('SC_SECRET', 'change-me-run-install');
-}
-
 // Session config
 define('SC_SESSION_NAME', 'sc_session');
 define('SC_SESSION_TTL', 86400); // 24 hours
@@ -53,8 +48,13 @@ define('SC_GQL_MAX_DEPTH', 10);
 define('SC_GQL_MAX_SELECTIONS', 500);
 define('SC_GQL_MAX_QUERY_SIZE', 32768); // 32 KB
 
-// Load local override if present (created by install.php)
+// Load local override first — install.php writes SC_SECRET here
 $localConfig = SC_ROOT . '/config/local.php';
 if (file_exists($localConfig)) {
     require_once $localConfig;
+}
+
+// Fallback secret if not yet installed
+if (!defined('SC_SECRET')) {
+    define('SC_SECRET', 'change-me-run-install');
 }
