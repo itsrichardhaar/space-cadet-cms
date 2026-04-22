@@ -7,8 +7,10 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "php:dev": "php -S localhost:8000 -t php/",
-    "start": "concurrently \"npm run php:dev\" \"npm run dev\""
+    "php:dev": "php -S localhost:8000 -t php/ php/router.php",
+    "start": "concurrently \"npm run php:dev\" \"npm run dev\"",
+    "test-site": "php -S localhost:8888 -t test-site/ test-site/router.php",
+    "deploy:test": "rsync -a --exclude 'storage/' --exclude 'dist/' --exclude 'config/local.php' php/ test-site/space-cadet/ && cp -r php/dist test-site/space-cadet/dist && cp php/index.php test-site/index.php && echo 'Deployed to test-site/'"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.0",

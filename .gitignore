@@ -24,6 +24,15 @@ Thumbs.db
 .env.*
 *.local
 
+# Test site — user data and build output excluded
+test-site/space-cadet/storage/db/
+test-site/space-cadet/storage/cache/
+test-site/space-cadet/storage/uploads/
+test-site/space-cadet/storage/thumbnails/
+test-site/space-cadet/storage/INSTALLED
+test-site/space-cadet/config/local.php
+test-site/space-cadet/dist/
+
 # Logs
 *.log
 npm-debug.log*

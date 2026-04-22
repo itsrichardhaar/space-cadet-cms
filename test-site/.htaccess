@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Route everything through index.php except actual files/directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# Block direct access to the CMS internals
+RewriteRule ^space-cadet/storage/ - [F,L]
+RewriteRule ^space-cadet/config/local\.php$ - [F,L]
