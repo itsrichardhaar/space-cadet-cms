@@ -1,0 +1,100 @@
+/* Space Cadet CMS — Global Styles */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Color tokens */
+  --sc-bg:          #0f0f13;
+  --sc-surface:     #1a1a24;
+  --sc-surface-2:   #22222f;
+  --sc-border:      #2e2e3e;
+  --sc-text:        #e8e8f0;
+  --sc-text-muted:  #888899;
+  --sc-accent:      #7c6af7;
+  --sc-accent-hover:#9585ff;
+  --sc-success:     #34d399;
+  --sc-warning:     #fbbf24;
+  --sc-danger:      #f87171;
+  --sc-info:        #60a5fa;
+
+  /* Sizing */
+  --sc-sidebar-w:   240px;
+  --sc-topbar-h:    56px;
+  --sc-radius:      6px;
+  --sc-radius-lg:   10px;
+
+  /* Typography */
+  --sc-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sc-font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--sc-bg);
+  color: var(--sc-text);
+  font-family: var(--sc-font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#svelte {
+  height: 100%;
+}
+
+a {
+  color: var(--sc-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--sc-accent-hover);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--sc-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sc-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sc-text-muted);
+}
+
+/* Utility classes */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

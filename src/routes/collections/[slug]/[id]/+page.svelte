@@ -1,0 +1,275 @@
+<script>
+  import AdminShell from '$lib/components/layout/AdminShell.svelte';
+  import FieldRenderer from '$lib/components/fields/FieldRenderer.svelte';
+  import StatusBadge from '$lib/components/common/StatusBadge.svelte';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+  import api from '$lib/api.js';
+  import { onMount } from 'svelte';
+  import { notifications } from '$lib/stores/notifications.svelte.js';
+  import { formatDate } from '$lib/utils/formatDate.js';
+
+  let slug       = $derived($page.params.slug);
+  let itemId     = $derived($page.params.id);
+
+  let collection  = $state(null);
+  let item        = $state(null);
+  let loading     = $state(true);
+  let saving      = $state(false);
+  let notFound    = $state(false);
+  let allLabels   = $state([]);
+
+  // Editable fields
+  let title    = $state('');
+  let itemSlug = $state('');
+  let status   = $state('draft');
+  let publishedAt = $state(null);
+  let fields   = $state({});       // { [fieldKey]: value }
+  let labelIds = $state([]);       // array of label IDs
+
+  let slugEdited = false;
+
+  onMount(() => load());
+
+  // Reload when params change (SPA navigation between items)
+  let _prevId = '';
+  $effect(() => {
+    const id = itemId;
+    if (id !== _prevId) { _prevId = id; if (!loading) load(); }
+  });
+
+  async function load() {
+    loading = true;
+    try {
+      // Load all collections to find by slug
+      const allRes = await api.get('collections');
+      const c = (allRes.data ?? []).find(c => c.slug === slug);
+      if (!c) { notFound = true; return; }
+
+      // Load collection with full fields schema
+      const [collRes, itemRes, labelsRes] = await Promise.all([
+        api.get(`collections/${c.id}`),
+        api.get(`collections/${c.id}/items/${itemId}`),
+        api.get('labels'),
+      ]);
+
+      collection = collRes.data;
+      item       = itemRes.data;
+      allLabels  = labelsRes.data ?? [];
+
+      // Initialise editable state from item
+      title       = item.title ?? '';
+      itemSlug    = item.slug  ?? '';
+      status      = item.status ?? 'draft';
+      publishedAt = item.published_at ?? null;
+      fields      = { ...(item.fields ?? {}) };
+      labelIds    = (item.labels ?? []).map(l => l.id);
+    } catch (e) {
+      if (e.status === 404) notFound = true;
+      else notifications.error(e.message);
+    } finally {
+      loading = false;
+    }
+  }
+
+  function onTitleInput() {
+    if (!slugEdited) itemSlug = toSlug(title);
+  }
+
+  function toSlug(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function toggleLabel(id) {
+    if (labelIds.includes(id)) labelIds = labelIds.filter(l => l !== id);
+    else labelIds = [...labelIds, id];
+  }
+
+  async function save() {
+    saving = true;
+    try {
+      await api.put(`collections/${collection.id}/items/${itemId}`, {
+        title: title.trim(),
+        slug:  itemSlug.trim(),
+        status,
+        published_at: publishedAt,
+        fields,
+        labels: labelIds,
+      });
+      notifications.success('Saved.');
+    } catch (e) {
+      notifications.error(e.message);
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function deleteItem() {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`collections/${collection.id}/items/${itemId}`);
+      notifications.success(`"${title}" deleted.`);
+      goto(`/admin/collections/${slug}`);
+    } catch (e) {
+      notifications.error(e.message);
+    }
+  }
+</script>
+
+<AdminShell title={item?.title ?? 'Loading…'}>
+  {#snippet actions()}
+    {#if item}
+      <a href="/admin/collections/{slug}" class="btn-ghost">← {collection?.name}</a>
+      <button class="btn-danger-ghost" onclick={deleteItem}>Delete</button>
+      <button class="btn-primary" onclick={save} disabled={saving}>
+        {saving ? 'Saving…' : 'Save'}
+      </button>
+    {/if}
+  {/snippet}
+
+  {#if notFound}
+    <p class="err">Item not found.</p>
+  {:else if loading}
+    <p class="muted">Loading…</p>
+  {:else}
+    <div class="layout">
+      <!-- Main content: custom fields -->
+      <div class="main">
+        {#if (collection?.fields ?? []).length === 0}
+          <div class="no-fields">
+            <p>No custom fields defined.</p>
+            <a href="/admin/collections/{slug}/schema" class="schema-link">Edit schema →</a>
+          </div>
+        {:else}
+          <div class="fields-card">
+            {#each (collection?.fields ?? []) as fieldDef}
+              <div class="field-wrap">
+                <FieldRenderer {fieldDef} bind:value={fields[fieldDef.key]} />
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Sidebar: core properties -->
+      <aside class="sidebar">
+        <!-- Status -->
+        {#if collection?.supports_status}
+          <div class="side-card">
+            <div class="side-card-head">Status</div>
+            <div class="side-card-body">
+              <select class="select" bind:value={status}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+              {#if status === 'published'}
+                <div class="pub-date">
+                  <span class="sub-label">Published at</span>
+                  <input
+                    class="input"
+                    type="datetime-local"
+                    value={publishedAt ? String(publishedAt).slice(0, 16) : ''}
+                    onchange={(e) => publishedAt = e.target.value || null}
+                  />
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Title & Slug -->
+        <div class="side-card">
+          <div class="side-card-head">Identity</div>
+          <div class="side-card-body">
+            <span class="sub-label">Title</span>
+            <input class="input" type="text" bind:value={title} oninput={onTitleInput} />
+            <span class="sub-label">Slug</span>
+            <input
+              class="input slug"
+              type="text"
+              bind:value={itemSlug}
+              oninput={() => slugEdited = true}
+            />
+          </div>
+        </div>
+
+        <!-- Labels -->
+        {#if allLabels.length > 0}
+          <div class="side-card">
+            <div class="side-card-head">Labels</div>
+            <div class="side-card-body labels-list">
+              {#each allLabels as lbl}
+                <label class="label-item">
+                  <input type="checkbox" checked={labelIds.includes(lbl.id)} onchange={() => toggleLabel(lbl.id)} />
+                  <span class="label-dot" style="background:{lbl.color || '#888'}"></span>
+                  <span>{lbl.name}</span>
+                </label>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Meta info -->
+        <div class="side-card side-card--meta">
+          <div class="meta-row"><span>Created</span><span>{formatDate(item.created_at, 'relative')}</span></div>
+          <div class="meta-row"><span>Updated</span><span>{formatDate(item.updated_at, 'relative')}</span></div>
+          {#if item.author_name}
+            <div class="meta-row"><span>Author</span><span>{item.author_name}</span></div>
+          {/if}
+        </div>
+      </aside>
+    </div>
+  {/if}
+</AdminShell>
+
+<style>
+  .muted { color: var(--sc-text-muted); }
+  .err   { color: var(--sc-danger); }
+
+  .layout { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+
+  /* --- Main --- */
+  .main {}
+
+  .no-fields { border: 2px dashed var(--sc-border); border-radius: var(--sc-radius-lg); padding: 40px; text-align: center; color: var(--sc-text-muted); }
+  .schema-link { display: inline-block; margin-top: 8px; color: var(--sc-accent); font-size: 13px; }
+
+  .fields-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 22px; }
+  .field-wrap {}
+
+  /* --- Sidebar --- */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+
+  .side-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
+  .side-card-head { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sc-text-muted); border-bottom: 1px solid var(--sc-border); }
+  .side-card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  .select { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 7px 10px; color: var(--sc-text); font-size: 13.5px; width: 100%; cursor: pointer; }
+  .select:focus { outline: none; border-color: var(--sc-accent); }
+  .input { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 7px 10px; color: var(--sc-text); font-size: 13.5px; width: 100%; }
+  .input:focus { outline: none; border-color: var(--sc-accent); }
+  .input.slug { font-family: var(--sc-font-mono); font-size: 12px; color: var(--sc-text-muted); }
+  .sub-label { font-size: 11px; font-weight: 600; color: var(--sc-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+  .pub-date { display: flex; flex-direction: column; gap: 4px; }
+
+  .labels-list { display: flex; flex-direction: column; gap: 8px; }
+  .label-item { display: flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+  .label-item input { accent-color: var(--sc-accent); cursor: pointer; }
+  .label-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .side-card--meta { }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; font-size: 12px; border-bottom: 1px solid var(--sc-border); }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-row span:first-child { color: var(--sc-text-muted); }
+  .meta-row span:last-child  { color: var(--sc-text); }
+
+  /* --- Action buttons --- */
+  .btn-primary { display: inline-flex; align-items: center; padding: 8px 18px; background: var(--sc-accent); color: #fff; border-radius: var(--sc-radius); font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary:hover:not(:disabled) { background: var(--sc-accent-hover); }
+  .btn-primary:disabled { opacity: .6; cursor: default; }
+  .btn-ghost { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--sc-border); color: var(--sc-text-muted); border-radius: var(--sc-radius); font-size: 13.5px; text-decoration: none; }
+  .btn-ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .btn-danger-ghost { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--sc-border); color: var(--sc-danger); border-radius: var(--sc-radius); font-size: 13.5px; background: none; cursor: pointer; }
+  .btn-danger-ghost:hover { border-color: var(--sc-danger); }
+</style>

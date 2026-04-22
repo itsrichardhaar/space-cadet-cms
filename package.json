@@ -1,0 +1,43 @@
+{
+  "name": "space-cadet-cms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "php:dev": "php -S localhost:8000 -t php/",
+    "start": "concurrently \"npm run php:dev\" \"npm run dev\""
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.0",
+    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "concurrently": "^9.0.0",
+    "svelte": "^5.0.0",
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "@codemirror/lang-css": "^6.0.0",
+    "@codemirror/lang-html": "^6.0.0",
+    "@codemirror/lang-javascript": "^6.0.0",
+    "@codemirror/lang-php": "^6.0.0",
+    "@codemirror/theme-one-dark": "^6.0.0",
+    "@tiptap/extension-bold": "^2.0.0",
+    "@tiptap/extension-bullet-list": "^2.0.0",
+    "@tiptap/extension-code-block": "^2.0.0",
+    "@tiptap/extension-heading": "^2.0.0",
+    "@tiptap/extension-image": "^2.0.0",
+    "@tiptap/extension-italic": "^2.0.0",
+    "@tiptap/extension-link": "^2.0.0",
+    "@tiptap/extension-list-item": "^2.0.0",
+    "@tiptap/extension-ordered-list": "^2.0.0",
+    "@tiptap/extension-strike": "^2.0.0",
+    "@tiptap/extension-underline": "^2.0.0",
+    "@tiptap/pm": "^2.0.0",
+    "@tiptap/starter-kit": "^2.0.0",
+    "codemirror": "^6.0.0",
+    "sortablejs": "^1.15.0"
+  }
+}

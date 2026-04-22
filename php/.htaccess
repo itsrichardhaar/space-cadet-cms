@@ -1,0 +1,32 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Block direct access to sensitive storage dirs and PHP source
+RewriteRule ^storage/db/             - [F,L]
+RewriteRule ^storage/cache/          - [F,L]
+RewriteRule ^storage/INSTALLED       - [F,L]
+RewriteRule ^config/local\.php       - [F,L]
+RewriteRule ^models/                 - [F,L]
+RewriteRule ^controllers/            - [F,L]
+RewriteRule ^graphql/                - [F,L]
+RewriteRule ^core/                   - [F,L]
+RewriteRule ^forge/                  - [F,L]
+RewriteRule ^media/                  - [F,L]
+
+# Block install.php after INSTALLED flag exists
+RewriteCond %{DOCUMENT_ROOT}/storage/INSTALLED -f
+RewriteRule ^install\.php$           - [F,L]
+
+# Serve static uploads directly (handled by web server for performance)
+RewriteRule ^storage/uploads/(.*)$      storage/uploads/$1      [L]
+RewriteRule ^storage/thumbnails/(.*)$   storage/thumbnails/$1   [L]
+
+# Route everything else through api.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^admin(/.*)?$ admin.php [L,QSA]
+
+# PHP settings
+php_flag display_errors Off
+php_flag log_errors On
