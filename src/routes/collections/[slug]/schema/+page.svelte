@@ -6,6 +6,15 @@
   import { onMount, onDestroy } from 'svelte';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { FIELD_TYPES, defaultFieldOptions } from '$lib/utils/fieldTypes.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const FIELD_TYPE_OPTS = FIELD_TYPES.map(t => ({ value: t.type, label: t.label }));
+  const CODE_LANG_OPTS = [
+    { value: 'html', label: 'HTML' },
+    { value: 'css', label: 'CSS' },
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'php', label: 'PHP' },
+  ];
   import Sortable from 'sortablejs';
 
   let slug       = $derived($page.params.slug);
@@ -181,11 +190,7 @@
                 />
               </div>
 
-              <select class="type-select" bind:value={f.type} onchange={() => onTypeChange(f)}>
-                {#each FIELD_TYPES as t}
-                  <option value={t.type}>{t.label}</option>
-                {/each}
-              </select>
+              <Select bind:value={f.type} options={FIELD_TYPE_OPTS} onchange={() => onTypeChange(f)} />
 
               <label class="req-toggle" title="Required">
                 <input type="checkbox" bind:checked={f.required} />
@@ -239,12 +244,7 @@
                 {:else if f.type === 'code'}
                   <div class="opt-row">
                     <label class="opt-label" for="opt-lang-{f._uid ?? f.id}">Language</label>
-                    <select id="opt-lang-{f._uid ?? f.id}" class="opt-select" bind:value={f.options.language}>
-                      <option value="html">HTML</option>
-                      <option value="css">CSS</option>
-                      <option value="javascript">JavaScript</option>
-                      <option value="php">PHP</option>
-                    </select>
+                    <Select id="opt-lang-{f._uid ?? f.id}" bind:value={f.options.language} options={CODE_LANG_OPTS} />
                   </div>
 
                 {:else}
@@ -280,7 +280,7 @@
   .drag-handle { background: none; border: none; color: var(--sc-text-muted); cursor: grab; font-size: 16px; padding: 2px 4px; flex-shrink: 0; }
   .drag-handle:active { cursor: grabbing; }
 
-  .field-type-badge { font-size: 10px; font-weight: 700; background: rgba(124,106,247,.15); color: var(--sc-accent); padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; flex-shrink: 0; }
+  .field-type-badge { font-size: 10px; font-weight: 700; background: rgba(var(--sc-accent-rgb), .15); color: var(--sc-accent); padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; flex-shrink: 0; }
 
   .field-meta { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
   .name-input { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 6px 10px; color: var(--sc-text); font-size: 13.5px; width: 180px; }

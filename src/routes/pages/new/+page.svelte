@@ -5,6 +5,12 @@
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { slugify } from '$lib/utils/slugify.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const STATUS_OPTS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+  ];
 
   let title     = $state('');
   let slug      = $state('');
@@ -33,7 +39,7 @@
       if (parentId) body.parent_id = parseInt(parentId);
       const res = await api.post('pages', body);
       notifications.success('Page created');
-      goto(`/pages/${res.data.id}`);
+      goto(`/admin/pages/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -44,7 +50,7 @@
 
 <AdminShell title="New Page">
   {#snippet actions()}
-    <a href="/pages" class="btn btn--ghost">Cancel</a>
+    <a href="/admin/pages" class="btn btn--ghost">Cancel</a>
     <button class="btn btn--primary" onclick={save} disabled={saving}>
       {saving ? 'Creating…' : 'Create Page'}
     </button>
@@ -62,19 +68,13 @@
       </div>
       <div class="field">
         <label class="label">Parent page</label>
-        <select class="input" bind:value={parentId}>
-          <option value="">None (top-level)</option>
-          {#each pages as p}
-            <option value={p.id}>{p.title}</option>
-          {/each}
-        </select>
+        <Select bind:value={parentId}
+          options={[{ value: '', label: 'None (top-level)' }, ...pages.map(p => ({ value: p.id, label: p.title }))]}
+        />
       </div>
       <div class="field">
         <label class="label">Status</label>
-        <select class="input" bind:value={status}>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-        </select>
+        <Select bind:value={status} options={STATUS_OPTS} />
       </div>
     </div>
   {/snippet}

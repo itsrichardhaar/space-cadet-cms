@@ -517,9 +517,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_entity  ON audit_log(entity_type, entity_id
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
 
 -- ============================================================
--- SMART FORGE
+-- BLUEPRINT AI
 -- ============================================================
-CREATE TABLE IF NOT EXISTS forge_jobs (
+CREATE TABLE IF NOT EXISTS blueprint_jobs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id      INTEGER REFERENCES users(id) ON DELETE SET NULL,
     provider     TEXT    NOT NULL CHECK(provider IN ('claude','openai','gemini')),

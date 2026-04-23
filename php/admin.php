@@ -57,7 +57,7 @@ try {
     $user = Auth::user();
     if ($user) {
         $userJson = json_encode([
-            'id'          => (int) $user['id'],
+            'id'          => (int) $user['uid'],
             'email'       => $user['email'],
             'displayName' => $user['display_name'],
             'role'        => $user['role'],

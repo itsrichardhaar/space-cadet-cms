@@ -194,7 +194,7 @@
   .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
   .label-row:hover .row-actions { opacity: 1; }
   .btn-icon { background: none; border: none; color: var(--sc-text-muted); padding: 4px; cursor: pointer; border-radius: var(--sc-radius); display: inline-flex; }
-  .btn-icon:hover { color: var(--sc-accent); background: rgba(124,106,247,.1); }
+  .btn-icon:hover { color: var(--sc-accent); background: rgba(var(--sc-accent-rgb), .1); }
   .btn-icon--danger:hover { color: var(--sc-danger); background: rgba(248,113,113,.1); }
   .btn-sm { padding: 4px 10px; border-radius: var(--sc-radius); font-size: 12px; font-weight: 600; border: none; cursor: pointer; background: var(--sc-accent); color: #fff; }
   .btn-sm--ghost { background: transparent; border: 1px solid var(--sc-border); color: var(--sc-text-muted); }

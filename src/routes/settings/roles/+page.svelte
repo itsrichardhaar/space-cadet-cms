@@ -166,7 +166,7 @@
   .subnav { display: flex; gap: 4px; margin-bottom: 20px; }
   .subnav-link { padding: 6px 14px; border-radius: var(--sc-radius); font-size: 13px; color: var(--sc-text-muted); text-decoration: none; border: 1px solid transparent; }
   .subnav-link:hover { background: var(--sc-surface-2); color: var(--sc-text); }
-  .subnav-link--active { background: rgba(124,106,247,.1); color: var(--sc-accent); border-color: rgba(124,106,247,.2); }
+  .subnav-link--active { background: rgba(var(--sc-accent-rgb), .1); color: var(--sc-accent); border-color: rgba(var(--sc-accent-rgb), .2); }
 
   .hint { font-size: 13px; color: var(--sc-text-muted); margin: 0 0 20px; }
   .muted { color: var(--sc-text-muted); font-size: 13px; }

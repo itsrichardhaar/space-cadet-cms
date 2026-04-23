@@ -1,6 +1,6 @@
 {
   "name": "space-cadet-cms",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "php:dev": "php -S localhost:8000 -t php/ php/router.php",
     "start": "concurrently \"npm run php:dev\" \"npm run dev\"",
     "test-site": "php -S localhost:8888 -t test-site/ test-site/router.php",
-    "deploy:test": "rsync -a --exclude 'storage/' --exclude 'dist/' --exclude 'config/local.php' php/ test-site/space-cadet/ && cp -r php/dist test-site/space-cadet/dist && echo 'Deployed to test-site/'"
+    "deploy:test": "rsync -a --exclude 'storage/' --exclude 'dist/' --exclude 'config/local.php' php/ test-site/space-cadet/ && rsync -a --delete php/dist/ test-site/space-cadet/dist/ && echo 'Deployed to test-site/'"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.0",

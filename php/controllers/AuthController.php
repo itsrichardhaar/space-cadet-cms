@@ -72,15 +72,15 @@ class AuthController {
             Response::error('Current password is incorrect.', 401);
         }
 
-        User::update((int) $user['id'], ['password' => $new]);
+        User::update(Auth::userId(), ['password' => $new]);
         Response::success(['message' => 'Password updated.']);
     }
 
     public function refresh(Request $req): void {
         Auth::requireAuth();
-        // Regenerate session by destroying and recreating
+        $userId = Auth::userId();
         Auth::destroySession();
-        $user = User::findById((int) Auth::user()['id']);
+        $user = User::findById($userId);
         Auth::createSession($user, $req);
         Response::success(User::sanitize($user));
     }

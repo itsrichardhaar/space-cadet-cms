@@ -122,7 +122,7 @@
   .result-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--sc-border); text-decoration: none; transition: background .1s; }
   .result-row:last-child { border-bottom: none; }
   .result-row:hover { background: var(--sc-surface-2); }
-  .type-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--sc-accent); background: rgba(124,106,247,.12); padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
+  .type-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--sc-accent); background: rgba(var(--sc-accent-rgb), .12); padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
   .result-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .result-title { font-size: 14px; font-weight: 600; color: var(--sc-text); }
   .result-meta { font-size: 12px; color: var(--sc-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

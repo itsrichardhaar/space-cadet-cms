@@ -10,6 +10,13 @@
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const ROLE_FILTER_OPTS = [
+    { value: '', label: 'All roles' },
+    { value: 'free_member', label: 'Free' },
+    { value: 'paid_member', label: 'Paid' },
+  ];
 
   let members    = $state([]);
   let loading    = $state(true);
@@ -61,17 +68,13 @@
 
 <AdminShell title="Members">
   {#snippet actions()}
-    <a href="/members/new" class="btn btn--primary">+ New Member</a>
+    <a href="/admin/members/new" class="btn btn--primary">+ New Member</a>
   {/snippet}
 
   {#snippet children()}
     <div class="toolbar">
       <SearchBar value={q} onchange={handleSearch} placeholder="Search members…" />
-      <select class="input input--sm" bind:value={roleFilter} onchange={() => { pageNum = 1; loadMembers(); }}>
-        <option value="">All roles</option>
-        <option value="free_member">Free</option>
-        <option value="paid_member">Paid</option>
-      </select>
+      <Select bind:value={roleFilter} options={ROLE_FILTER_OPTS} onchange={() => { pageNum = 1; loadMembers(); }} />
     </div>
 
     {#if loading}
@@ -81,7 +84,7 @@
         title="No members found"
         message="Members are front-end portal users (free or paid)."
         action="New Member"
-        onaction={() => goto('/members/new')}
+        onaction={() => goto('/admin/members/new')}
       />
     {:else}
       <div class="table-wrap">
@@ -92,7 +95,7 @@
           <tbody>
             {#each members as m (m.id)}
               <tr>
-                <td><a href="/members/{m.id}" class="item-link">{m.display_name}</a></td>
+                <td><a href="/admin/members/{m.id}" class="item-link">{m.display_name}</a></td>
                 <td class="muted-cell">{m.email}</td>
                 <td><span class="role-badge role-badge--{roleBadge(m.role)}">{m.role}</span></td>
                 <td><StatusBadge status={m.status} /></td>

@@ -6,6 +6,12 @@
   import SortableList from '$lib/components/common/SortableList.svelte';
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const OPEN_IN_OPTS = [
+    { value: '_self', label: 'Same tab' },
+    { value: '_blank', label: 'New tab' },
+  ];
 
   let menuId   = $derived(parseInt($page.params.id));
 
@@ -111,12 +117,12 @@
 
 {#if notFound}
   <AdminShell title="Menu not found">
-    {#snippet children()}<p class="muted"><a href="/menus">Back to Menus</a></p>{/snippet}
+    {#snippet children()}<p class="muted"><a href="/admin/menus">Back to Menus</a></p>{/snippet}
   </AdminShell>
 {:else}
   <AdminShell title={loading ? 'Loading…' : (menu?.name ?? 'Menu Builder')}>
     {#snippet actions()}
-      <a href="/menus" class="btn btn--ghost">← All Menus</a>
+      <a href="/admin/menus" class="btn btn--ghost">← All Menus</a>
       <button class="btn btn--secondary" onclick={openNewItem}>+ Add Item</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save Menu'}
@@ -180,10 +186,7 @@
       </div>
       <div class="field">
         <label class="label">Open in</label>
-        <select class="input" bind:value={iTarget}>
-          <option value="_self">Same tab</option>
-          <option value="_blank">New tab</option>
-        </select>
+        <Select bind:value={iTarget} options={OPEN_IN_OPTS} />
       </div>
     </div>
   {/snippet}
@@ -209,7 +212,7 @@
   .item-badge { font-size: 11px; background: var(--sc-surface-2); border: 1px solid var(--sc-border); padding: 1px 6px; border-radius: 20px; color: var(--sc-text-muted); width: fit-content; }
   .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
   .btn-icon { background: none; border: none; color: var(--sc-text-muted); padding: 4px 6px; cursor: pointer; border-radius: var(--sc-radius); font-size: 14px; display: inline-flex; align-items: center; }
-  .btn-icon:hover { color: var(--sc-accent); background: rgba(124,106,247,.1); }
+  .btn-icon:hover { color: var(--sc-accent); background: rgba(var(--sc-accent-rgb), .1); }
   .btn-icon--danger:hover { color: var(--sc-danger); background: rgba(248,113,113,.1); }
   .form { display: flex; flex-direction: column; gap: 16px; }
   .field { display: flex; flex-direction: column; gap: 6px; }

@@ -57,7 +57,7 @@
 
 <AdminShell title="Pages">
   {#snippet actions()}
-    <a href="/pages/new" class="btn btn--primary">+ New Page</a>
+    <a href="/admin/pages/new" class="btn btn--primary">+ New Page</a>
   {/snippet}
 
   {#snippet children()}
@@ -68,7 +68,7 @@
         title="No pages yet"
         message="Create your first page to get started."
         action="New Page"
-        onaction={() => goto('/pages/new')}
+        onaction={() => goto('/admin/pages/new')}
       />
     {:else}
       <div class="table-wrap">
@@ -86,7 +86,7 @@
             {#each sorted(pages) as page (page.id)}
               <tr>
                 <td>
-                  <a href="/pages/{page.id}" class="item-link" style="padding-left: {page._depth * 20}px">
+                  <a href="/admin/pages/{page.id}" class="item-link" style="padding-left: {page._depth * 20}px">
                     {#if page._depth > 0}<span class="tree-indent">↳ </span>{/if}
                     {page.title}
                   </a>

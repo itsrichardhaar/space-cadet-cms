@@ -1,9 +1,35 @@
 # Changelog
 
-All notable changes to Outpost CMS are documented in this file.
+All notable changes to Space Cadet CMS are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.1.1] — 2026-04-23
+
+### Added
+- Mid-dark palette as default theme (warm putty grey `#888480`), with Dark and Light variants
+- Theme appearance controls in Settings → Appearance: Brightness (50–150%), Color Intensity (0–100%), Color Hue (0–359°) sliders with live palette preview strip
+- Flash-prevention inline script in `app.html` — theme and appearance applied before first paint, zero flicker on reload
+- Custom `Select` component replacing all native `<select>` elements CMS-wide — fully themed open/closed states via `position: fixed` dropdown
+- Blueprint AI feature — HTML-to-schema AI extraction tool (renamed and re-routed from Smart Forge)
+
+### Changed
+- Theme store extended with HSL-based color computation: surfaces tinted toward accent hue at non-default intensity/brightness
+- Sidebar navigation updated: Smart Forge → Blueprint AI, route `/forge` → `/blueprint`
+- API routes updated: `forge/*` → `blueprint/*`; database table `forge_jobs` → `blueprint_jobs` (auto-migrated)
+- Collections list and Dashboard icon display no longer renders raw `icon` field string value
+
+### Fixed
+- CSRF validation missing from all controller mutations — centralized in `Router::dispatch()`
+- `auth.js` wrong route names (`auth/me`, `auth/logout` → `me`, `logout`)
+- Dashboard showing only collection counts — now shows all 6 content type stat cards
+- Collection name prefixed with "folder" on Collections page and Dashboard
+
+### Security
+- CSRF tokens now validated for all `POST`/`PUT`/`DELETE`/`PATCH` requests except login and public form submissions
 
 ---
 

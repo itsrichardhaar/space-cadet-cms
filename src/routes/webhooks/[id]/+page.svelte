@@ -93,7 +93,7 @@
     try {
       await api.delete(`webhooks/${hookId}`);
       notifications.success('Webhook deleted');
-      goto('/webhooks');
+      goto('/admin/webhooks');
     } catch (e) {
       notifications.error(e.message);
     }
@@ -107,12 +107,12 @@
 
 {#if notFound}
   <AdminShell title="Not found">
-    {#snippet children()}<p class="muted"><a href="/webhooks">Back to Webhooks</a></p>{/snippet}
+    {#snippet children()}<p class="muted"><a href="/admin/webhooks">Back to Webhooks</a></p>{/snippet}
   </AdminShell>
 {:else}
   <AdminShell title={loading ? 'Loading…' : name}>
     {#snippet actions()}
-      <a href="/webhooks" class="btn btn--ghost">← All Webhooks</a>
+      <a href="/admin/webhooks" class="btn btn--ghost">← All Webhooks</a>
       <button class="btn btn--secondary" onclick={test} disabled={testing}>{testing ? 'Sending…' : 'Test'}</button>
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>

@@ -1,10 +1,10 @@
 <?php
 /**
- * Space Cadet CMS — Smart Forge Orchestrator
+ * Space Cadet CMS — Blueprint AI Orchestrator
  * Sends HTML to an AI provider and receives a structured field schema.
  */
 
-class SmartForge {
+class Blueprint {
 
     private const SYSTEM_PROMPT = <<<'PROMPT'
 You are a CMS content extraction assistant. The user will provide raw HTML from a webpage.
@@ -55,7 +55,7 @@ PROMPT;
         if (!$apiKey) throw new RuntimeException('Claude API key not configured in Settings.');
 
         $payload = json_encode([
-            'model'      => 'claude-opus-4-6',
+            'model'      => 'claude-sonnet-4-5',
             'max_tokens' => 2048,
             'system'     => $system,
             'messages'   => [['role' => 'user', 'content' => $user]],

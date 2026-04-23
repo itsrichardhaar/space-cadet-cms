@@ -10,6 +10,13 @@
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { slugify } from '$lib/utils/slugify.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const PAGE_STATUS_OPTS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ];
 
   let pageId   = $derived(parseInt($page.params.id));
 
@@ -102,7 +109,7 @@
     try {
       await api.delete(`pages/${pageId}`);
       notifications.success('Page deleted');
-      goto('/pages');
+      goto('/admin/pages');
     } catch (e) {
       notifications.error(e.message);
     }
@@ -112,7 +119,7 @@
 {#if notFound}
   <AdminShell title="Page not found">
     {#snippet children()}
-      <p class="muted">This page does not exist. <a href="/pages">Back to Pages</a></p>
+      <p class="muted">This page does not exist. <a href="/admin/pages">Back to Pages</a></p>
     {/snippet}
   </AdminShell>
 {:else}
@@ -150,11 +157,7 @@
             <!-- Status card -->
             <div class="card">
               <h3 class="card-title">Status</h3>
-              <select class="input" bind:value={status}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+              <Select bind:value={status} options={PAGE_STATUS_OPTS} />
               {#if status === 'published'}
                 <label class="label" style="margin-top:12px">Publish date</label>
                 <input class="input" type="datetime-local" bind:value={publishedAt} />
@@ -169,12 +172,9 @@
               <label class="label" style="margin-top:10px">Slug</label>
               <input class="input" type="text" bind:value={slug} oninput={() => slugEdited = true} />
               <label class="label" style="margin-top:10px">Parent page</label>
-              <select class="input" bind:value={parentId}>
-                <option value="">None</option>
-                {#each allPages as p}
-                  <option value={String(p.id)}>{p.title}</option>
-                {/each}
-              </select>
+              <Select bind:value={parentId}
+                options={[{ value: '', label: 'None' }, ...allPages.map(p => ({ value: String(p.id), label: p.title }))]}
+              />
             </div>
 
             <!-- SEO card -->

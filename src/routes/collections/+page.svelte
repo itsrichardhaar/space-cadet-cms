@@ -55,7 +55,7 @@
           {#each collections as c}
             <tr>
               <td>
-                <a href="/admin/collections/{c.slug}" class="table-link">{c.icon ?? '⊞'} {c.name}</a>
+                <a href="/admin/collections/{c.slug}" class="table-link">{c.name}</a>
               </td>
               <td><code class="code">{c.slug}</code></td>
               <td>{c.item_count ?? 0}</td>

@@ -9,7 +9,10 @@
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { slugify } from '$lib/utils/slugify.js';
 
+  import Select from '$lib/components/common/Select.svelte';
+
   const FIELD_TYPES = ['text','email','textarea','select','checkbox','radio','number','date'];
+  const FIELD_TYPE_OPTS = FIELD_TYPES.map(t => ({ value: t, label: t }));
 
   let formId   = $derived(parseInt($page.params.id));
 
@@ -108,7 +111,7 @@
     try {
       await api.delete(`forms/${formId}`);
       notifications.success('Form deleted');
-      goto('/forms');
+      goto('/admin/forms');
     } catch (e) {
       notifications.error(e.message);
     }
@@ -117,12 +120,12 @@
 
 {#if notFound}
   <AdminShell title="Not found">
-    {#snippet children()}<p class="muted"><a href="/forms">Back to Forms</a></p>{/snippet}
+    {#snippet children()}<p class="muted"><a href="/admin/forms">Back to Forms</a></p>{/snippet}
   </AdminShell>
 {:else}
   <AdminShell title={loading ? 'Loading…' : name}>
     {#snippet actions()}
-      <a href="/forms/{formId}/submissions" class="btn btn--ghost">Submissions</a>
+      <a href="/admin/forms/{formId}/submissions" class="btn btn--ghost">Submissions</a>
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save'}
@@ -172,9 +175,7 @@
                           <div class="row2">
                             <div class="mini-field">
                               <label class="label">Type</label>
-                              <select class="input" bind:value={f.type}>
-                                {#each FIELD_TYPES as t}<option value={t}>{t}</option>{/each}
-                              </select>
+                              <Select bind:value={f.type} options={FIELD_TYPE_OPTS} />
                             </div>
                             <div class="mini-field">
                               <label class="label">Placeholder</label>
@@ -263,7 +264,7 @@
   .drag-handle { color: var(--sc-text-muted); cursor: grab; display: flex; padding: 2px; flex-shrink: 0; }
   .field-toggle { flex: 1; display: flex; align-items: center; gap: 8px; background: none; border: none; text-align: left; cursor: pointer; padding: 0; color: inherit; }
   .field-name-preview { font-size: 13px; font-weight: 600; color: var(--sc-text); }
-  .field-type-badge { font-size: 11px; background: rgba(124,106,247,.15); color: var(--sc-accent); padding: 2px 7px; border-radius: 20px; }
+  .field-type-badge { font-size: 11px; background: rgba(var(--sc-accent-rgb), .15); color: var(--sc-accent); padding: 2px 7px; border-radius: 20px; }
   .field-body { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .mini-field { display: flex; flex-direction: column; gap: 5px; }

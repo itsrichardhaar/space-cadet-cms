@@ -115,7 +115,7 @@
   .uploader__zone:hover,
   .uploader--drag .uploader__zone {
     border-color: var(--sc-accent);
-    background: rgba(124,106,247,.06);
+    background: rgba(var(--sc-accent-rgb), .06);
     color: var(--sc-text);
   }
   .uploader__hint { font-size: 11px; color: var(--sc-text-muted); }

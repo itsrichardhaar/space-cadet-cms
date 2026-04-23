@@ -37,6 +37,7 @@ require_once __DIR__ . '/models/Folder.php';
 require_once __DIR__ . '/models/Label.php';
 require_once __DIR__ . '/models/Template.php';
 require_once __DIR__ . '/models/SearchIndex.php';
+require_once __DIR__ . '/models/AuditLog.php';
 
 // Controllers
 require_once __DIR__ . '/controllers/AuthController.php';
@@ -55,9 +56,14 @@ require_once __DIR__ . '/controllers/ApiKeysController.php';
 require_once __DIR__ . '/controllers/FoldersController.php';
 require_once __DIR__ . '/controllers/LabelsController.php';
 require_once __DIR__ . '/controllers/CompassController.php';
-require_once __DIR__ . '/controllers/SmartForgeController.php';
+require_once __DIR__ . '/controllers/BlueprintController.php';
 require_once __DIR__ . '/controllers/MembersController.php';
 require_once __DIR__ . '/controllers/SettingsController.php';
+
+// One-time migration: rename forge_jobs → blueprint_jobs (Blueprint AI rename)
+if (Database::queryOne("SELECT name FROM sqlite_master WHERE type='table' AND name='forge_jobs'")) {
+    Database::execute("ALTER TABLE forge_jobs RENAME TO blueprint_jobs");
+}
 
 // Determine if this is a public content API request
 $action = $_GET['action'] ?? '';

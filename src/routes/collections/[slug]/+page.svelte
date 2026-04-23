@@ -10,6 +10,14 @@
   import { onMount }   from 'svelte';
   import { formatDate } from '$lib/utils/formatDate.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const STATUS_FILTER_OPTS = [
+    { value: '', label: 'All statuses' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ];
 
   let slug       = $derived($page.params.slug);
   let collection = $state(null);
@@ -170,12 +178,7 @@
     <!-- Filters bar -->
     <div class="toolbar">
       <input class="search" type="search" placeholder="Search items…" bind:value={filterQ} oninput={onSearch} />
-      <select class="select" bind:value={filterStatus} onchange={() => loadItems(1)}>
-        <option value="">All statuses</option>
-        <option value="draft">Draft</option>
-        <option value="published">Published</option>
-        <option value="archived">Archived</option>
-      </select>
+      <Select bind:value={filterStatus} options={STATUS_FILTER_OPTS} onchange={() => loadItems(1)} />
 
       {#if selected.size > 0}
         <div class="bulk-actions">
@@ -277,7 +280,7 @@
   .bulk-btn--danger:hover { border-color: var(--sc-danger); }
 
   .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; align-items: center; }
-  .chip { display: flex; align-items: center; gap: 4px; background: rgba(124,106,247,.12); border: 1px solid rgba(124,106,247,.3); color: var(--sc-accent); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+  .chip { display: flex; align-items: center; gap: 4px; background: rgba(var(--sc-accent-rgb), .12); border: 1px solid rgba(var(--sc-accent-rgb), .3); color: var(--sc-accent); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
   .chip-remove { background: none; border: none; cursor: pointer; color: var(--sc-accent); opacity: .7; padding: 0 0 0 4px; font-size: 11px; line-height: 1; }
   .chip-remove:hover { opacity: 1; }
   .chip-clear { background: none; border: none; cursor: pointer; color: var(--sc-text-muted); font-size: 12px; padding: 3px 6px; }
@@ -289,7 +292,7 @@
   .table td { padding: 12px 14px; border-bottom: 1px solid var(--sc-border); vertical-align: middle; }
   .table tbody tr:last-child td { border-bottom: none; }
   .table tbody tr:hover td { background: var(--sc-surface-2); }
-  .table tbody tr.selected td { background: rgba(124,106,247,.06); }
+  .table tbody tr.selected td { background: rgba(var(--sc-accent-rgb), .06); }
   .cb-col { width: 40px; }
   .muted { color: var(--sc-text-muted); font-size: 12.5px; }
 

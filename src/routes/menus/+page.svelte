@@ -44,7 +44,7 @@
       showCreate = false;
       newName = ''; newSlug = ''; slugEdited = false;
       notifications.success('Menu created');
-      goto(`/menus/${res.data.id}`);
+      goto(`/admin/menus/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -89,7 +89,7 @@
           <tbody>
             {#each menus as m (m.id)}
               <tr>
-                <td><a href="/menus/{m.id}" class="item-link">{m.name}</a></td>
+                <td><a href="/admin/menus/{m.id}" class="item-link">{m.name}</a></td>
                 <td class="muted-cell">{m.slug}</td>
                 <td class="actions-cell">
                   <button class="btn-icon" onclick={() => deleteItem = m} title="Delete">

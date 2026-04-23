@@ -39,7 +39,7 @@
     try {
       const res = await api.post('webhooks', { name: newName.trim(), url: newUrl.trim(), events: [], is_active: 1 });
       notifications.success('Webhook created');
-      goto(`/webhooks/${res.data.id}`);
+      goto(`/admin/webhooks/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -91,7 +91,7 @@
             {#each hooks as h (h.id)}
               <tr>
                 <td>
-                  <a href="/webhooks/{h.id}" class="item-link">{h.name}</a>
+                  <a href="/admin/webhooks/{h.id}" class="item-link">{h.name}</a>
                   {#if !h.is_active}<span class="badge badge--off">Disabled</span>{/if}
                 </td>
                 <td class="muted-cell url-cell">{h.url}</td>

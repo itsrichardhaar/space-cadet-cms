@@ -1,33 +1,107 @@
 /* Space Cadet CMS — Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
+/* ── Default: Mid-Dark (Ableton Mid palette) ─── */
 :root {
-  /* Color tokens */
-  --sc-bg:          #0f0f13;
-  --sc-surface:     #1a1a24;
-  --sc-surface-2:   #22222f;
-  --sc-border:      #2e2e3e;
-  --sc-text:        #e8e8f0;
-  --sc-text-muted:  #888899;
-  --sc-accent:      #7c6af7;
-  --sc-accent-hover:#9585ff;
-  --sc-success:     #34d399;
-  --sc-warning:     #fbbf24;
-  --sc-danger:      #f87171;
-  --sc-info:        #60a5fa;
+  --sc-bg:             #888480;
+  --sc-surface:        #9e9a96;
+  --sc-surface-2:      #b2aeaa;
+  --sc-inset:          #74706c;
+  --sc-border:         rgba(20,15,10,0.20);
+  --sc-border-strong:  rgba(20,15,10,0.35);
+  --sc-text:           #1a1814;
+  --sc-text-muted:     #4c4844;
+  --sc-text-dim:       #726e6a;
+  --sc-accent:         #f5a524;
+  --sc-accent-soft:    rgba(245,165,36,0.18);
+  --sc-accent-rgb:     245, 165, 36;
+  --sc-accent-hover:   #e09420;
+  --sc-danger:         #c84040;
+  --sc-success:        #5a9c5a;
+  --sc-warning:        #d4a820;
+  --sc-info:           #4e8ab8;
+
+  /* Chip colors */
+  --sc-chip-teal:      #68c9c0;
+  --sc-chip-peach:     #f4a76b;
+  --sc-chip-yellow:    #e8d35e;
+  --sc-chip-pink:      #e891b4;
+  --sc-chip-lavender:  #b69ce0;
+  --sc-chip-sky:       #7bb4e0;
+  --sc-chip-mint:      #8cd4a0;
+  --sc-chip-coral:     #e88878;
 
   /* Sizing */
-  --sc-sidebar-w:   240px;
-  --sc-topbar-h:    56px;
-  --sc-radius:      6px;
-  --sc-radius-lg:   10px;
+  --sc-sidebar-w:   200px;
+  --sc-topbar-h:    36px;
+  --sc-radius:      3px;
+  --sc-radius-lg:   4px;
 
   /* Typography */
-  --sc-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --sc-font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --sc-font:      'Inter', system-ui, -apple-system, sans-serif;
+  --sc-font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+/* ── Dark theme ──────────────────────────────── */
+:root[data-theme="dark"] {
+  --sc-bg:             #2a2825;
+  --sc-surface:        #33302c;
+  --sc-surface-2:      #3c3834;
+  --sc-inset:          #221f1c;
+  --sc-border:         rgba(255,240,220,0.07);
+  --sc-border-strong:  rgba(255,240,220,0.14);
+  --sc-text:           #e8e4dc;
+  --sc-text-muted:     #a19c92;
+  --sc-text-dim:       #6c665d;
+  --sc-accent:         #f5a524;
+  --sc-accent-soft:    rgba(245,165,36,0.16);
+  --sc-accent-rgb:     245, 165, 36;
+  --sc-accent-hover:   #e09420;
+  --sc-danger:         #e06868;
+  --sc-success:        #7fc97f;
+  --sc-warning:        #e8d35e;
+  --sc-info:           #7bb4e0;
+  --sc-chip-teal:      #68c9c0;
+  --sc-chip-peach:     #f4a76b;
+  --sc-chip-yellow:    #e8d35e;
+  --sc-chip-pink:      #e891b4;
+  --sc-chip-lavender:  #b69ce0;
+  --sc-chip-sky:       #7bb4e0;
+  --sc-chip-mint:      #8cd4a0;
+  --sc-chip-coral:     #e88878;
+}
+
+/* ── Light theme ─────────────────────────────── */
+:root[data-theme="light"] {
+  --sc-bg:             #c6c2b6;
+  --sc-surface:        #d4d0c4;
+  --sc-surface-2:      #e2ddd0;
+  --sc-inset:          #b8b4a8;
+  --sc-border:         rgba(40,35,25,0.12);
+  --sc-border-strong:  rgba(40,35,25,0.24);
+  --sc-text:           #1a1814;
+  --sc-text-muted:     #5a564c;
+  --sc-text-dim:       #8a8578;
+  --sc-accent:         #c87a1a;
+  --sc-accent-soft:    rgba(200,122,26,0.14);
+  --sc-accent-rgb:     200, 122, 26;
+  --sc-accent-hover:   #b56c14;
+  --sc-danger:         #c04848;
+  --sc-success:        #5a9c5a;
+  --sc-warning:        #d4b83c;
+  --sc-info:           #5e9ac8;
+  --sc-chip-teal:      #4fb0a6;
+  --sc-chip-peach:     #e89050;
+  --sc-chip-yellow:    #d4b83c;
+  --sc-chip-pink:      #d47296;
+  --sc-chip-lavender:  #9c80c8;
+  --sc-chip-sky:       #5e9ac8;
+  --sc-chip-mint:      #6ebc80;
+  --sc-chip-coral:     #d06858;
 }
 
 html, body {
@@ -73,11 +147,11 @@ input, textarea, select {
   background: var(--sc-surface);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--sc-border);
+  background: var(--sc-border-strong);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--sc-text-muted);
+  background: var(--sc-text-dim);
 }
 
 /* Utility classes */

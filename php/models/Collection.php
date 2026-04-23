@@ -27,7 +27,7 @@ class Collection {
                 $data['name'],
                 $data['slug'],
                 $data['description']     ?? null,
-                $data['icon']            ?? 'folder',
+                $data['icon']            ?? null,
                 (int)($data['supports_status'] ?? 1),
                 (int)($data['supports_author'] ?? 1),
                 (int)($data['supports_dates']  ?? 1),

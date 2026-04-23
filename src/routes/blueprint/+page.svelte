@@ -3,6 +3,18 @@
   import api        from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { onMount } from 'svelte';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const PROVIDER_OPTS = [
+    { value: 'claude', label: 'Claude (Anthropic)' },
+    { value: 'openai', label: 'GPT-4o (OpenAI)' },
+    { value: 'gemini', label: 'Gemini 1.5 Pro (Google)' },
+  ];
+
+  const applyOptions = $derived([
+    { value: 'page', label: 'New Page' },
+    ...collections.map(c => ({ value: c.slug, label: `Collection: ${c.name}` })),
+  ]);
 
   // ── State ─────────────────────────────────────────────────────────────
   let html         = $state('');
@@ -25,14 +37,18 @@
     } catch {}
   });
 
+  let jobId = $state(null);
+
   // ── Submit ─────────────────────────────────────────────────────────────
   async function submit() {
     if (!html.trim()) { error = 'Paste some HTML first.'; return; }
-    error = ''; result = null; applied = null;
+    error = ''; result = null; applied = null; jobId = null;
     loading = true;
     try {
-      const res = await api.post('forge/analyze', { html, provider, instructions });
-      result = res.data?.result ?? res.data;
+      const res = await api.post('blueprint/analyze', { html, provider, instructions });
+      const d = res.data ?? {};
+      jobId  = d.job_id ?? null;
+      result = d.result ?? d;
     } catch (e) {
       error = e.message ?? 'Analysis failed.';
     } finally {
@@ -42,15 +58,12 @@
 
   // ── Apply ──────────────────────────────────────────────────────────────
   async function applyResult() {
-    if (!result) return;
+    if (!result || !jobId) return;
     applying = true;
+    error = '';
     try {
-      // SmartForgeController.apply needs job_id — we re-analyze to get one
-      // Alternatively use the job_id from the analyze response
-      // The controller returns { job_id, result } so we store job_id
-      error = '';
       const target = applyTarget === 'page' ? 'page' : applyTarget;
-      const res = await api.post(`forge/${jobId}/apply`, { target });
+      const res = await api.post(`blueprint/jobs/${jobId}/apply`, { target });
       const d = res.data ?? {};
       if (d.type === 'page') {
         applied = { type: 'page', id: d.id, url: `/admin/pages/${d.id}` };
@@ -62,25 +75,6 @@
       notifications.error(e.message);
     } finally {
       applying = false;
-    }
-  }
-
-  let jobId = $state(null);
-
-  // Re-bind submit to capture jobId
-  async function submitWithJob() {
-    if (!html.trim()) { error = 'Paste some HTML first.'; return; }
-    error = ''; result = null; applied = null; jobId = null;
-    loading = true;
-    try {
-      const res = await api.post('forge/analyze', { html, provider, instructions });
-      const d = res.data ?? {};
-      jobId  = d.job_id ?? null;
-      result = d.result ?? d;
-    } catch (e) {
-      error = e.message ?? 'Analysis failed.';
-    } finally {
-      loading = false;
     }
   }
 
@@ -100,13 +94,13 @@
   function reset() { html = ''; instructions = ''; result = null; error = ''; applied = null; jobId = null; }
 </script>
 
-<AdminShell title="Smart Forge">
-  <div class="forge-layout">
+<AdminShell title="Blueprint AI">
+  <div class="blueprint-layout">
     <!-- Left: input panel -->
     <div class="input-panel">
       <div class="section-header">
         <h2 class="section-title">Paste HTML</h2>
-        <p class="section-desc">Paste the raw HTML of any webpage. Smart Forge will extract editable content regions and suggest a field schema.</p>
+        <p class="section-desc">Paste the raw HTML of any webpage. Blueprint AI will extract editable content regions and suggest a field schema.</p>
       </div>
 
       <textarea
@@ -119,11 +113,7 @@
       <div class="options-row">
         <div class="field-group">
           <label class="field-label" for="provider">AI Provider</label>
-          <select id="provider" class="select" bind:value={provider}>
-            <option value="claude">Claude (Anthropic)</option>
-            <option value="openai">GPT-4o (OpenAI)</option>
-            <option value="gemini">Gemini 1.5 Pro (Google)</option>
-          </select>
+          <Select id="provider" bind:value={provider} options={PROVIDER_OPTS} />
         </div>
 
         <div class="field-group" style="flex:2">
@@ -143,7 +133,7 @@
       {/if}
 
       <div class="btn-row">
-        <button class="btn-primary" onclick={submitWithJob} disabled={loading || !html.trim()}>
+        <button class="btn-primary" onclick={submit} disabled={loading || !html.trim()}>
           {loading ? 'Analyzing…' : '✦ Analyze with AI'}
         </button>
         {#if result || error}
@@ -223,12 +213,7 @@
               </div>
             {:else}
               <div class="apply-row">
-                <select class="select" bind:value={applyTarget}>
-                  <option value="page">New Page</option>
-                  {#each collections as c}
-                    <option value={c.slug}>Collection: {c.name}</option>
-                  {/each}
-                </select>
+                <Select bind:value={applyTarget} options={applyOptions} />
                 <button class="btn-primary" onclick={applyResult} disabled={applying}>
                   {applying ? 'Applying…' : 'Apply'}
                 </button>
@@ -247,8 +232,8 @@
 </AdminShell>
 
 <style>
-  .forge-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-  @media (max-width: 900px) { .forge-layout { grid-template-columns: 1fr; } }
+  .blueprint-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .blueprint-layout { grid-template-columns: 1fr; } }
 
   /* Input panel */
   .input-panel { display: flex; flex-direction: column; gap: 16px; }
@@ -315,7 +300,7 @@
 
   .fields-list { display: flex; flex-direction: column; gap: 6px; }
   .field-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; font-size: 13px; align-items: start; }
-  .field-key { font-family: var(--sc-font-mono); font-size: 11.5px; color: var(--sc-accent); background: rgba(124,106,247,.1); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+  .field-key { font-family: var(--sc-font-mono); font-size: 11.5px; color: var(--sc-accent); background: rgba(var(--sc-accent-rgb), .1); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
   .field-val { color: var(--sc-text); line-height: 1.4; word-break: break-word; }
 
   .defs-list { display: flex; flex-direction: column; gap: 6px; }
@@ -328,7 +313,7 @@
   .type-badge--info    { background: rgba(60,140,220,.15); color: var(--sc-info); }
   .type-badge--warning { background: rgba(220,160,40,.15); color: var(--sc-warning); }
   .type-badge--success { background: rgba(40,180,100,.15); color: var(--sc-success); }
-  .type-badge--accent  { background: rgba(124,106,247,.15); color: var(--sc-accent); }
+  .type-badge--accent  { background: rgba(var(--sc-accent-rgb), .15); color: var(--sc-accent); }
   .type-badge--muted   { background: var(--sc-surface-2); color: var(--sc-text-muted); }
 
   .apply-section { }

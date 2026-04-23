@@ -8,7 +8,7 @@ import { goto } from '$app/navigation';
 
 export async function checkAuth() {
   try {
-    const res = await api.get('auth/me');
+    const res = await api.get('me');
     userStore.set(res.data);
     return true;
   } catch {
@@ -18,8 +18,8 @@ export async function checkAuth() {
 
 export async function logout() {
   try {
-    await api.post('auth/logout');
+    await api.post('logout');
   } catch { /* ignore */ }
   userStore.clear();
-  goto('/login');
+  goto('/admin/login');
 }

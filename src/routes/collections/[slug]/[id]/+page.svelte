@@ -8,6 +8,13 @@
   import { onMount } from 'svelte';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const STATUS_OPTS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ];
 
   let slug       = $derived($page.params.slug);
   let itemId     = $derived($page.params.id);
@@ -158,11 +165,7 @@
           <div class="side-card">
             <div class="side-card-head">Status</div>
             <div class="side-card-body">
-              <select class="select" bind:value={status}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+              <Select bind:value={status} options={STATUS_OPTS} />
               {#if status === 'published'}
                 <div class="pub-date">
                   <span class="sub-label">Published at</span>

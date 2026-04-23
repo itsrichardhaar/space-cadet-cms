@@ -8,6 +8,16 @@
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const ROLE_OPTS = [
+    { value: 'free_member', label: 'Free member' },
+    { value: 'paid_member', label: 'Paid member' },
+  ];
+  const STATUS_OPTS = [
+    { value: 'active', label: 'Active' },
+    { value: 'suspended', label: 'Suspended' },
+  ];
 
   let memberId = $derived(parseInt($page.params.id));
 
@@ -62,7 +72,7 @@
     try {
       await api.delete(`members/${memberId}`);
       notifications.success('Member deleted');
-      goto('/members');
+      goto('/admin/members');
     } catch (e) {
       notifications.error(e.message);
     }
@@ -71,12 +81,12 @@
 
 {#if notFound}
   <AdminShell title="Not found">
-    {#snippet children()}<p class="muted"><a href="/members">Back to Members</a></p>{/snippet}
+    {#snippet children()}<p class="muted"><a href="/admin/members">Back to Members</a></p>{/snippet}
   </AdminShell>
 {:else}
   <AdminShell title={loading ? 'Loading…' : dispName}>
     {#snippet actions()}
-      <a href="/members" class="btn btn--ghost">← All Members</a>
+      <a href="/admin/members" class="btn btn--ghost">← All Members</a>
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save'}
@@ -100,17 +110,11 @@
             </div>
             <div class="field-row">
               <label class="label">Role</label>
-              <select class="input" bind:value={role}>
-                <option value="free_member">Free member</option>
-                <option value="paid_member">Paid member</option>
-              </select>
+              <Select bind:value={role} options={ROLE_OPTS} />
             </div>
             <div class="field-row">
               <label class="label">Status</label>
-              <select class="input" bind:value={status}>
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-              </select>
+              <Select bind:value={status} options={STATUS_OPTS} />
             </div>
           </div>
 

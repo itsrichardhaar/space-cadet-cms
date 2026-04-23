@@ -4,6 +4,7 @@
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import { themeStore } from '$lib/stores/theme.svelte.js';
 
   let loading    = $state(true);
   let saving     = $state(false);
@@ -21,6 +22,24 @@
   let claudeKey  = $state('');
   let openaiKey  = $state('');
   let geminiKey  = $state('');
+
+  // Appearance — local mirrors of themeStore (synced via $effect after init)
+  let themeHue = $state(themeStore.hue);
+  let themeBri = $state(themeStore.brightness);
+  let themeInt = $state(themeStore.intensity);
+
+  // Sync local state when store initialises (layout onMount runs first)
+  $effect(() => {
+    themeHue = themeStore.hue;
+    themeBri = themeStore.brightness;
+    themeInt = themeStore.intensity;
+  });
+
+  let isDefaultAppearance = $derived(themeHue === 38 && themeBri === 100 && themeInt === 0);
+
+  function resetAppearance() {
+    themeStore.reset();
+  }
 
   onMount(loadSettings);
 
@@ -138,9 +157,84 @@
         </button>
       </div>
 
+      <!-- Appearance -->
+      <div class="form">
+        <div class="section">
+          <h3 class="section-title">Appearance</h3>
+
+          <!-- Live palette preview strip -->
+          <div class="palette-preview" aria-hidden="true">
+            <div class="pp-chip" style="background:var(--sc-inset)"></div>
+            <div class="pp-chip" style="background:var(--sc-bg)"></div>
+            <div class="pp-chip" style="background:var(--sc-surface)"></div>
+            <div class="pp-chip" style="background:var(--sc-surface-2)"></div>
+            <div class="pp-chip pp-chip--accent" style="background:var(--sc-accent)"></div>
+          </div>
+
+          <div class="field">
+            <label class="label">Theme</label>
+            <div class="theme-picker">
+              {#each [['mid', 'Mid'], ['dark', 'Dark'], ['light', 'Light']] as [val, lbl]}
+                <button
+                  class="theme-btn"
+                  class:theme-btn--active={themeStore.current === val}
+                  onclick={() => themeStore.set(val)}
+                >
+                  <div class="theme-swatch theme-swatch--{val}"></div>
+                  <span>{lbl}</span>
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="slider-header">
+              <label class="label">Brightness</label>
+              <span class="slider-val">{themeBri}%</span>
+            </div>
+            <input
+              class="slider slider--brightness"
+              type="range" min="50" max="150"
+              bind:value={themeBri}
+              oninput={() => themeStore.setBri(themeBri)}
+            />
+          </div>
+
+          <div class="field">
+            <div class="slider-header">
+              <label class="label">Color Intensity</label>
+              <span class="slider-val">{themeInt}%</span>
+            </div>
+            <input
+              class="slider slider--intensity"
+              type="range" min="0" max="100"
+              bind:value={themeInt}
+              oninput={() => themeStore.setInt(themeInt)}
+            />
+          </div>
+
+          <div class="field">
+            <div class="slider-header">
+              <label class="label">Color Hue</label>
+              <span class="slider-val">{themeHue}°</span>
+            </div>
+            <input
+              class="slider slider--hue"
+              type="range" min="0" max="359"
+              bind:value={themeHue}
+              oninput={() => themeStore.setHue(themeHue)}
+            />
+          </div>
+
+          {#if !isDefaultAppearance}
+            <button class="btn-reset" onclick={resetAppearance}>Reset to defaults</button>
+          {/if}
+        </div>
+      </div>
+
     {:else if activeTab === 'ai'}
       <div class="form">
-        <p class="hint">Enter your API keys for the Smart Forge feature. Keys are stored encrypted at rest.</p>
+        <p class="hint">Enter your API keys for the Blueprint AI feature. Keys are stored encrypted at rest.</p>
         <div class="section">
           <div class="field">
             <label class="label">Claude (Anthropic) API key</label>
@@ -192,7 +286,7 @@
   .subnav { display: flex; gap: 4px; margin-bottom: 20px; }
   .subnav-link { padding: 6px 14px; border-radius: var(--sc-radius); font-size: 13px; color: var(--sc-text-muted); text-decoration: none; border: 1px solid transparent; }
   .subnav-link:hover { background: var(--sc-surface-2); color: var(--sc-text); }
-  .subnav-link--active { background: rgba(124,106,247,.1); color: var(--sc-accent); border-color: rgba(124,106,247,.2); }
+  .subnav-link--active { background: rgba(var(--sc-accent-rgb), .1); color: var(--sc-accent); border-color: rgba(var(--sc-accent-rgb), .2); }
 
   .muted { color: var(--sc-text-muted); font-size: 13px; }
   .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--sc-border); }
@@ -215,9 +309,98 @@
   .table tbody tr:hover { background: var(--sc-surface-2); }
   .table td { padding: 10px 16px; font-size: 13px; }
   .muted-cell { color: var(--sc-text-muted); font-size: 12px; }
-  .action-badge { font-size: 11px; background: rgba(124,106,247,.12); color: var(--sc-accent); padding: 2px 7px; border-radius: 20px; font-family: var(--sc-font-mono); }
+  .action-badge { font-size: 11px; background: rgba(var(--sc-accent-rgb), .12); color: var(--sc-accent); padding: 2px 7px; border-radius: 20px; font-family: var(--sc-font-mono); }
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
-  .btn--primary { background: var(--sc-accent); color: #fff; }
+  .btn--primary { background: var(--sc-accent); color: #1a1814; }
   .btn--primary:hover:not(:disabled) { background: var(--sc-accent-hover); }
   .btn--primary:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── Palette preview strip ───────────────────── */
+  .palette-preview {
+    display: flex; gap: 0; height: 6px;
+    border-radius: var(--sc-radius); overflow: hidden;
+    border: 1px solid var(--sc-border);
+    margin-bottom: 4px;
+  }
+  .pp-chip { flex: 1; }
+  .pp-chip--accent { flex: 0 0 28%; }
+
+  /* ── Theme picker ────────────────────────────── */
+  .theme-picker { display: flex; gap: 8px; }
+  .theme-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 8px 14px; background: var(--sc-surface-2);
+    border: 1px solid var(--sc-border); border-radius: var(--sc-radius);
+    cursor: pointer; font-size: 11px; font-weight: 500;
+    font-family: var(--sc-font-mono); color: var(--sc-text-muted);
+    transition: border-color 0.1s, color 0.1s; letter-spacing: 0.04em;
+  }
+  .theme-btn:hover { border-color: var(--sc-border-strong); color: var(--sc-text); }
+  .theme-btn--active { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .theme-swatch { width: 44px; height: 22px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.2); }
+  .theme-swatch--mid   { background: #888480; }
+  .theme-swatch--dark  { background: #2a2825; }
+  .theme-swatch--light { background: #c6c2b6; }
+
+  /* ── Appearance sliders ──────────────────────── */
+  .slider-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 7px;
+  }
+  .slider-val {
+    font-size: 11px; font-family: var(--sc-font-mono);
+    color: var(--sc-text-muted); min-width: 34px; text-align: right;
+  }
+
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%; height: 5px;
+    border-radius: 3px; outline: none; border: none;
+    cursor: ew-resize; display: block;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--sc-text);
+    border: 2px solid var(--sc-bg);
+    cursor: ew-resize;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.30);
+  }
+  .slider::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--sc-text);
+    border: 2px solid var(--sc-bg);
+    cursor: ew-resize;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.30);
+  }
+  .slider:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--sc-accent); outline-offset: 2px;
+  }
+
+  /* Brightness: dark inset → light surface gradient */
+  .slider--brightness {
+    background: linear-gradient(to right, #3a3733, #e8e3db);
+  }
+  /* Intensity: neutral surface → live accent color */
+  .slider--intensity {
+    background: linear-gradient(to right, var(--sc-surface-2), var(--sc-accent));
+  }
+  /* Hue: full rainbow */
+  .slider--hue {
+    background: linear-gradient(to right,
+      hsl(0,80%,55%), hsl(30,80%,55%), hsl(60,80%,55%), hsl(90,80%,55%),
+      hsl(120,80%,55%), hsl(150,80%,55%), hsl(180,80%,55%), hsl(210,80%,55%),
+      hsl(240,80%,55%), hsl(270,80%,55%), hsl(300,80%,55%), hsl(330,80%,55%),
+      hsl(360,80%,55%));
+  }
+
+  .btn-reset {
+    background: none; border: none; padding: 0;
+    font-size: 12px; font-family: var(--sc-font);
+    color: var(--sc-text-muted); cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    align-self: flex-start;
+  }
+  .btn-reset:hover { color: var(--sc-text); }
 </style>

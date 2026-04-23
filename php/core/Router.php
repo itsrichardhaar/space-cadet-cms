@@ -30,6 +30,15 @@ class Router {
             return;
         }
 
+        // CSRF — required for all session-auth mutations; skip for API key auth,
+        // login (no session yet), and public form submission.
+        if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true) && !Auth::isApiKey()) {
+            $skipCsrf = ($action === 'login') || str_starts_with($action, 'submit/');
+            if (!$skipCsrf && !Auth::verifyCsrf($req)) {
+                Response::error('Invalid CSRF token', 403, 'CSRF_INVALID');
+            }
+        }
+
         // Parse action into segments, detect IDs
         $segments = array_values(array_filter(explode('/', $action)));
         $ids      = [];
@@ -199,10 +208,10 @@ class Router {
             // ── Search ───────────────────────────────────────────────────
             'search:GET'                     => [SearchController::class,         'search',             []],
 
-            // ── Smart Forge ──────────────────────────────────────────────
-            'forge/analyze:POST'             => [SmartForgeController::class,     'analyze',            []],
-            'forge/jobs/{id}:GET'            => [SmartForgeController::class,     'jobStatus',          [0]],
-            'forge/jobs/{id}/apply:POST'     => [SmartForgeController::class,     'apply',              [0]],
+            // ── Blueprint AI ─────────────────────────────────────────────
+            'blueprint/analyze:POST'             => [BlueprintController::class,  'analyze',            []],
+            'blueprint/jobs/{id}:GET'            => [BlueprintController::class,  'jobStatus',          [0]],
+            'blueprint/jobs/{id}/apply:POST'     => [BlueprintController::class,  'apply',              [0]],
 
             // ── Compass ──────────────────────────────────────────────────
             'compass/{id}/schema:GET'        => [CompassController::class,        'schema',             [0]],
@@ -217,6 +226,9 @@ class Router {
             // ── Settings ─────────────────────────────────────────────────
             'settings:GET'                   => [SettingsController::class,       'list',               []],
             'settings:PUT'                   => [SettingsController::class,       'update',             []],
+
+            // ── Stats ─────────────────────────────────────────────────────
+            'stats:GET'                      => [SettingsController::class,       'stats',              []],
 
             // ── Audit log ────────────────────────────────────────────────
             'audit-log:GET'                  => [SettingsController::class,       'auditLog',           []],

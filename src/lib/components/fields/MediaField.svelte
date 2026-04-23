@@ -125,7 +125,7 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; }
   .card { background: var(--sc-surface-2); border: 2px solid transparent; border-radius: var(--sc-radius); padding: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: border-color .15s; }
   .card:hover { border-color: var(--sc-accent); }
-  .card.selected { border-color: var(--sc-accent); background: rgba(124,106,247,.1); }
+  .card.selected { border-color: var(--sc-accent); background: rgba(var(--sc-accent-rgb), .1); }
   .card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; }
   .file-placeholder { font-size: 40px; height: 80px; display: flex; align-items: center; justify-content: center; }
   .card-name { font-size: 11px; color: var(--sc-text-muted); text-align: center; word-break: break-all; line-height: 1.3; }

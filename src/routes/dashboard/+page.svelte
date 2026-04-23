@@ -6,12 +6,17 @@
   import { formatDate } from '$lib/utils/formatDate.js';
 
   let collections = $state([]);
+  let stats       = $state(null);
   let loading     = $state(true);
 
   onMount(async () => {
     try {
-      const res = await api.get('collections');
-      collections = res.data ?? [];
+      const [statsRes, colRes] = await Promise.all([
+        api.get('stats'),
+        api.get('collections'),
+      ]);
+      stats       = statsRes.data ?? {};
+      collections = colRes.data ?? [];
     } catch {
       // silent on dashboard
     } finally {
@@ -23,18 +28,34 @@
 <AdminShell title="Dashboard">
   <div class="dashboard">
     <div class="welcome">
-      <h2>Welcome back, {userStore.current?.displayName} 👋</h2>
+      <h2>Welcome back, {userStore.current?.displayName}</h2>
       <p>Here's what's happening in your CMS.</p>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-card__num">{collections.length}</div>
+        <div class="stat-card__num">{stats?.collections ?? collections.length}</div>
         <div class="stat-card__label">Collections</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card__num">{collections.reduce((a, c) => a + (c.item_count ?? 0), 0)}</div>
-        <div class="stat-card__label">Total Items</div>
+        <div class="stat-card__num">{stats?.items ?? '—'}</div>
+        <div class="stat-card__label">Items</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__num">{stats?.pages ?? '—'}</div>
+        <div class="stat-card__label">Pages</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__num">{stats?.media ?? '—'}</div>
+        <div class="stat-card__label">Media</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__num">{stats?.members ?? '—'}</div>
+        <div class="stat-card__label">Members</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__num">{stats?.forms ?? '—'}</div>
+        <div class="stat-card__label">Forms</div>
       </div>
     </div>
 
@@ -44,7 +65,7 @@
         <div class="collection-list">
           {#each collections as c}
             <a href="/admin/collections/{c.slug}" class="collection-row">
-              <span class="collection-row__icon">{c.icon ?? '⊞'}</span>
+              <span class="collection-row__icon">⊞</span>
               <span class="collection-row__name">{c.name}</span>
               <span class="collection-row__count">{c.item_count ?? 0} items</span>
               <span class="collection-row__updated">{formatDate(c.updated_at, 'relative')}</span>

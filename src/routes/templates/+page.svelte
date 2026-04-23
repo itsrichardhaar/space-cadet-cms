@@ -9,6 +9,13 @@
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
   import { slugify } from '$lib/utils/slugify.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const TEMPLATE_TYPE_OPTS = [
+    { value: 'page', label: 'Page' },
+    { value: 'partial', label: 'Partial' },
+    { value: 'layout', label: 'Layout' },
+  ];
 
   let templates  = $state([]);
   let loading    = $state(true);
@@ -48,7 +55,7 @@
         source: '',
       });
       notifications.success('Template created');
-      goto(`/templates/${res.data.id}`);
+      goto(`/admin/templates/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -98,7 +105,7 @@
           <tbody>
             {#each templates as t (t.id)}
               <tr>
-                <td><a href="/templates/{t.id}" class="item-link">{t.name}</a></td>
+                <td><a href="/admin/templates/{t.id}" class="item-link">{t.name}</a></td>
                 <td class="muted-cell">{t.slug}</td>
                 <td>
                   <span class="type-badge" style="color:{typeColor(t.type)};background:{typeColor(t.type)}18">{t.type}</span>
@@ -133,11 +140,7 @@
       </div>
       <div class="field">
         <label class="label">Type</label>
-        <select class="input" bind:value={newType}>
-          <option value="page">Page</option>
-          <option value="partial">Partial</option>
-          <option value="layout">Layout</option>
-        </select>
+        <Select bind:value={newType} options={TEMPLATE_TYPE_OPTS} />
       </div>
     </div>
   {/snippet}

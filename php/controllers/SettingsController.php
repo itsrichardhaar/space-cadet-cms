@@ -18,6 +18,17 @@ class SettingsController {
         }
         Response::success(['updated'=>count($data)]);
     }
+    public function stats(Request $req): void {
+        Auth::requireRole('editor');
+        Response::success([
+            'collections' => (int)(Database::queryOne("SELECT COUNT(*) as n FROM collections")['n'] ?? 0),
+            'items'       => (int)(Database::queryOne("SELECT COUNT(*) as n FROM collection_items")['n'] ?? 0),
+            'pages'       => (int)(Database::queryOne("SELECT COUNT(*) as n FROM pages")['n'] ?? 0),
+            'media'       => (int)(Database::queryOne("SELECT COUNT(*) as n FROM media")['n'] ?? 0),
+            'members'     => (int)(Database::queryOne("SELECT COUNT(*) as n FROM users WHERE role IN ('free_member','paid_member')")['n'] ?? 0),
+            'forms'       => (int)(Database::queryOne("SELECT COUNT(*) as n FROM forms")['n'] ?? 0),
+        ]);
+    }
     public function auditLog(Request $req): void {
         Auth::requireRole('admin');
         $page=$req->getInt('page',1); $perPage=50;

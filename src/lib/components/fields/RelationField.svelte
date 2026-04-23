@@ -134,7 +134,7 @@
   .wrap { position: relative; }
 
   .tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 36px; padding: 6px; background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); }
-  .tag { display: inline-flex; align-items: center; gap: 5px; background: rgba(124,106,247,.15); color: var(--sc-accent); border-radius: 99px; padding: 3px 8px 3px 10px; font-size: 12.5px; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; background: rgba(var(--sc-accent-rgb), .15); color: var(--sc-accent); border-radius: 99px; padding: 3px 8px 3px 10px; font-size: 12.5px; }
   .tag button { background: none; border: none; color: inherit; cursor: pointer; font-size: 11px; padding: 0; line-height: 1; opacity: .7; }
   .tag button:hover { opacity: 1; }
   .pick-btn { background: none; border: 1px dashed var(--sc-border); border-radius: var(--sc-radius); padding: 4px 10px; color: var(--sc-text-muted); font-size: 12.5px; cursor: pointer; transition: border-color .15s, color .15s; }

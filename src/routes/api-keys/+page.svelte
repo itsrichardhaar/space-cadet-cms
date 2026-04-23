@@ -187,7 +187,7 @@
   .table td { padding: 10px 16px; font-size: 13px; }
   .key-name { font-weight: 600; color: var(--sc-text); }
   .mono { font-family: var(--sc-font-mono); font-size: 12px; color: var(--sc-text-muted); }
-  .scope-badge { display: inline-block; font-size: 11px; background: rgba(124,106,247,.12); color: var(--sc-accent); padding: 2px 7px; border-radius: 20px; margin-right: 4px; }
+  .scope-badge { display: inline-block; font-size: 11px; background: rgba(var(--sc-accent-rgb), .12); color: var(--sc-accent); padding: 2px 7px; border-radius: 20px; margin-right: 4px; }
   .muted-cell { color: var(--sc-text-muted); font-size: 12px; }
   .actions-cell { text-align: right; width: 40px; }
   .btn-icon { background: none; border: none; color: var(--sc-text-muted); padding: 4px; cursor: pointer; border-radius: var(--sc-radius); display: inline-flex; }

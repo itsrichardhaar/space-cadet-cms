@@ -80,7 +80,7 @@
   }
   .card--clickable { cursor: pointer; }
   .card--clickable:hover { border-color: var(--sc-accent); }
-  .card--selected { border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(124,106,247,.25); }
+  .card--selected { border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(var(--sc-accent-rgb), .25); }
 
   .card__thumb {
     aspect-ratio: 4/3;

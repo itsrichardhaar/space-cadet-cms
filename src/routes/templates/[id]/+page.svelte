@@ -12,6 +12,13 @@
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { slugify } from '$lib/utils/slugify.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const TEMPLATE_TYPE_OPTS = [
+    { value: 'page', label: 'Page' },
+    { value: 'partial', label: 'Partial' },
+    { value: 'layout', label: 'Layout' },
+  ];
 
   let tplId    = $derived(parseInt($page.params.id));
 
@@ -102,7 +109,7 @@
     try {
       await api.delete(`templates/${tplId}`);
       notifications.success('Template deleted');
-      goto('/templates');
+      goto('/admin/templates');
     } catch (e) {
       notifications.error(e.message);
     }
@@ -111,12 +118,12 @@
 
 {#if notFound}
   <AdminShell title="Not found">
-    {#snippet children()}<p class="muted"><a href="/templates">Back to Templates</a></p>{/snippet}
+    {#snippet children()}<p class="muted"><a href="/admin/templates">Back to Templates</a></p>{/snippet}
   </AdminShell>
 {:else}
   <AdminShell title={loading ? 'Loading…' : name}>
     {#snippet actions()}
-      <a href="/templates" class="btn btn--ghost">← Templates</a>
+      <a href="/admin/templates" class="btn btn--ghost">← Templates</a>
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save'}
@@ -142,11 +149,7 @@
               <label class="label" style="margin-top:10px">Slug</label>
               <input class="input" type="text" bind:value={slug} oninput={() => slugEdited = true} />
               <label class="label" style="margin-top:10px">Type</label>
-              <select class="input" bind:value={type}>
-                <option value="page">Page</option>
-                <option value="partial">Partial</option>
-                <option value="layout">Layout</option>
-              </select>
+              <Select bind:value={type} options={TEMPLATE_TYPE_OPTS} />
             </div>
             {#if updatedAt}
               <div class="card card--meta">

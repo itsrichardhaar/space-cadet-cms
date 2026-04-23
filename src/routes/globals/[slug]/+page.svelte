@@ -50,13 +50,13 @@
 {#if notFound}
   <AdminShell title="Not found">
     {#snippet children()}
-      <p class="muted">Global group not found. <a href="/globals">Back to Globals</a></p>
+      <p class="muted">Global group not found. <a href="/admin/globals">Back to Globals</a></p>
     {/snippet}
   </AdminShell>
 {:else}
   <AdminShell title={loading ? 'Loading…' : (group?.name ?? 'Globals')}>
     {#snippet actions()}
-      <a href="/globals" class="btn btn--ghost">← All Globals</a>
+      <a href="/admin/globals" class="btn btn--ghost">← All Globals</a>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>

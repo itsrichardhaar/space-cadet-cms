@@ -5,6 +5,13 @@
   import api from '$lib/api.js';
   import { onMount } from 'svelte';
   import { notifications } from '$lib/stores/notifications.svelte.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const STATUS_OPTS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ];
 
   let slug       = $derived($page.params.slug);
   let collection = $state(null);
@@ -69,11 +76,7 @@
           {#if collection.supports_status}
             <div class="field">
               <label class="label" for="item-status">Status</label>
-              <select id="item-status" class="select" bind:value={status}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+              <Select id="item-status" bind:value={status} options={STATUS_OPTS} />
             </div>
           {/if}
         </div>

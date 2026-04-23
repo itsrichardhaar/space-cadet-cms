@@ -41,7 +41,7 @@
     try {
       const res = await api.post('forms', { name: newName.trim(), slug: newSlug || slugify(newName) });
       notifications.success('Form created');
-      goto(`/forms/${res.data.id}`);
+      goto(`/admin/forms/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -86,7 +86,7 @@
           <tbody>
             {#each forms as f (f.id)}
               <tr>
-                <td><a href="/forms/{f.id}" class="item-link">{f.name}</a></td>
+                <td><a href="/admin/forms/{f.id}" class="item-link">{f.name}</a></td>
                 <td class="muted-cell">{f.slug}</td>
                 <td class="muted-cell">{f.submission_count ?? 0}</td>
                 <td>
@@ -97,7 +97,7 @@
                   {/if}
                 </td>
                 <td class="actions-cell">
-                  <a href="/forms/{f.id}/submissions" class="btn-text" title="View submissions">Submissions</a>
+                  <a href="/admin/forms/{f.id}/submissions" class="btn-text" title="View submissions">Submissions</a>
                   <button class="btn-icon" onclick={() => deleteItem = f} title="Delete">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                       <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>

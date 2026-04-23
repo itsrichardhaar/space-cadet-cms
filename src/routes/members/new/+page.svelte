@@ -3,6 +3,12 @@
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
+  import Select from '$lib/components/common/Select.svelte';
+
+  const ROLE_OPTS = [
+    { value: 'free_member', label: 'Free member' },
+    { value: 'paid_member', label: 'Paid member' },
+  ];
 
   let email    = $state('');
   let name     = $state('');
@@ -19,7 +25,7 @@
     try {
       const res = await api.post('members', { email: email.trim(), display_name: name.trim(), password, role });
       notifications.success('Member created');
-      goto(`/members/${res.data.id}`);
+      goto(`/admin/members/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -30,7 +36,7 @@
 
 <AdminShell title="New Member">
   {#snippet actions()}
-    <a href="/members" class="btn btn--ghost">Cancel</a>
+    <a href="/admin/members" class="btn btn--ghost">Cancel</a>
     <button class="btn btn--primary" onclick={save} disabled={saving}>
       {saving ? 'Creating…' : 'Create Member'}
     </button>
@@ -52,10 +58,7 @@
       </div>
       <div class="field">
         <label class="label">Role</label>
-        <select class="input" bind:value={role}>
-          <option value="free_member">Free member</option>
-          <option value="paid_member">Paid member</option>
-        </select>
+        <Select bind:value={role} options={ROLE_OPTS} />
       </div>
     </div>
   {/snippet}

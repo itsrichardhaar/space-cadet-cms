@@ -6,6 +6,7 @@
 class Auth {
     private static ?array $currentUser = null;
     private static ?string $csrfToken  = null;
+    private static bool $viaApiKey     = false;
 
     // Role hierarchy (higher index = more permissions)
     private const ROLES = [
@@ -82,6 +83,7 @@ class Auth {
 
         Database::execute("UPDATE api_keys SET last_used_at = ? WHERE id = ?", [time(), $row['id']]);
         self::$currentUser = $row;
+        self::$viaApiKey   = true;
         return true;
     }
 
@@ -146,6 +148,10 @@ class Auth {
         $token     = hash_hmac('sha256', $sessionId . date('Ymd'), SC_SECRET);
         self::$csrfToken = $token;
         return json_encode($token);
+    }
+
+    public static function isApiKey(): bool {
+        return self::$viaApiKey;
     }
 
     public static function verifyCsrf(Request $req): bool {

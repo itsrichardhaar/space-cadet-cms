@@ -46,7 +46,7 @@
       showCreate = false;
       newName = ''; newSlug = ''; newDesc = ''; slugEdited = false;
       notifications.success('Global group created');
-      goto(`/globals/${res.data.slug}`);
+      goto(`/admin/globals/${res.data.slug}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -85,7 +85,7 @@
     {:else}
       <div class="grid">
         {#each groups as g (g.id)}
-          <a href="/globals/{g.slug}" class="group-card">
+          <a href="/admin/globals/{g.slug}" class="group-card">
             <span class="group-icon">⚙</span>
             <div class="group-info">
               <span class="group-name">{g.name}</span>

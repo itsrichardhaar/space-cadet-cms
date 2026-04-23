@@ -84,7 +84,7 @@
 
 <AdminShell title={loading ? 'Loading…' : `${form?.name ?? 'Form'} — Submissions`}>
   {#snippet actions()}
-    <a href="/forms/{formId}" class="btn btn--ghost">← Form Builder</a>
+    <a href="/admin/forms/{formId}" class="btn btn--ghost">← Form Builder</a>
     <button class="btn btn--secondary" onclick={exportCsv}>Export CSV</button>
   {/snippet}
 
@@ -178,7 +178,7 @@
   .table tbody tr { border-bottom: 1px solid var(--sc-border); }
   .table tbody tr:last-child { border-bottom: none; }
   .table tbody tr:hover { background: var(--sc-surface-2); }
-  .table.unread { background: rgba(124,106,247,.04); }
+  .table.unread { background: rgba(var(--sc-accent-rgb), .04); }
   .table td { padding: 10px 16px; font-size: 13px; }
   .status-cell { width: 30px; }
   .dot-unread { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--sc-accent); }
