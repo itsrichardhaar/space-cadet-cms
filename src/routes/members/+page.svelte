@@ -7,6 +7,7 @@
   import Pagination from '$lib/components/common/Pagination.svelte';
   import SearchBar from '$lib/components/common/SearchBar.svelte';
   import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+  import Skeleton from '$lib/components/common/Skeleton.svelte';
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
@@ -26,11 +27,17 @@
   let total      = $state(0);
   let perPage    = 20;
   let deleteItem = $state(null);
+  let showBulkDelete = $state(false);
+
+  // Bulk selection
+  let selected = $state(new Set());
+  let allSelected = $derived(members.length > 0 && members.every(m => selected.has(m.id)));
 
   onMount(loadMembers);
 
   async function loadMembers() {
     loading = true;
+    selected = new Set();
     try {
       const params = { page: pageNum, per_page: perPage };
       if (q)          params.q    = q;
@@ -48,6 +55,20 @@
   function handleSearch(val) { q = val; pageNum = 1; loadMembers(); }
   function handlePage(p)     { pageNum = p; loadMembers(); }
 
+  function toggleSelect(id) {
+    const s = new Set(selected);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    selected = s;
+  }
+
+  function toggleAll() {
+    if (allSelected) {
+      selected = new Set();
+    } else {
+      selected = new Set(members.map(m => m.id));
+    }
+  }
+
   async function confirmDelete() {
     const item = deleteItem;
     deleteItem = null;
@@ -56,6 +77,20 @@
       members = members.filter(m => m.id !== item.id);
       total--;
       notifications.success('Member deleted');
+    } catch (e) {
+      notifications.error(e.message);
+    }
+  }
+
+  async function confirmBulkDelete() {
+    showBulkDelete = false;
+    const ids = [...selected];
+    try {
+      await api.post('members/bulk', { action: 'delete', ids });
+      members = members.filter(m => !ids.includes(m.id));
+      total -= ids.length;
+      selected = new Set();
+      notifications.success(`${ids.length} member${ids.length !== 1 ? 's' : ''} deleted`);
     } catch (e) {
       notifications.error(e.message);
     }
@@ -77,8 +112,26 @@
       <Select bind:value={roleFilter} options={ROLE_FILTER_OPTS} onchange={() => { pageNum = 1; loadMembers(); }} />
     </div>
 
+    {#if selected.size > 0}
+      <div class="bulk-bar">
+        <span class="bulk-count">{selected.size} selected</span>
+        <button class="btn btn--danger-sm" onclick={() => showBulkDelete = true}>Delete selected</button>
+        <button class="btn btn--ghost-sm" onclick={() => selected = new Set()}>Clear</button>
+      </div>
+    {/if}
+
     {#if loading}
-      <p class="muted">Loading…</p>
+      <div class="skeleton-list">
+        {#each {length: 5} as _}
+          <div class="skeleton-row">
+            <Skeleton height="13px" width="18%" />
+            <Skeleton height="13px" width="22%" />
+            <Skeleton height="20px" width="60px" radius="20px" />
+            <Skeleton height="20px" width="60px" radius="20px" />
+            <Skeleton height="13px" width="10%" />
+          </div>
+        {/each}
+      </div>
     {:else if members.length === 0}
       <EmptyState
         title="No members found"
@@ -90,11 +143,19 @@
       <div class="table-wrap">
         <table class="table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
+            <tr>
+              <th class="cb-col">
+                <input type="checkbox" checked={allSelected} onchange={toggleAll} class="cb" />
+              </th>
+              <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th>
+            </tr>
           </thead>
           <tbody>
             {#each members as m (m.id)}
-              <tr>
+              <tr class:selected={selected.has(m.id)}>
+                <td class="cb-col">
+                  <input type="checkbox" checked={selected.has(m.id)} onchange={() => toggleSelect(m.id)} class="cb" />
+                </td>
                 <td><a href="/admin/members/{m.id}" class="item-link">{m.display_name}</a></td>
                 <td class="muted-cell">{m.email}</td>
                 <td><span class="role-badge role-badge--{roleBadge(m.role)}">{m.role}</span></td>
@@ -127,17 +188,37 @@
   oncancel={() => deleteItem = null}
 />
 
+<ConfirmDialog
+  open={showBulkDelete}
+  title="Delete {selected.size} member{selected.size !== 1 ? 's' : ''}"
+  message="Delete {selected.size} selected member{selected.size !== 1 ? 's' : ''}? This cannot be undone."
+  confirmLabel="Delete all"
+  danger={true}
+  onconfirm={confirmBulkDelete}
+  oncancel={() => showBulkDelete = false}
+/>
+
 <style>
   .muted { color: var(--sc-text-muted); font-size: 13px; }
   .toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
-  .input--sm { padding: 7px 10px; background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); color: var(--sc-text); font-size: 13px; outline: none; }
+
+  .bulk-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(var(--sc-accent-rgb), .08); border: 1px solid rgba(var(--sc-accent-rgb), .2); border-radius: var(--sc-radius); margin-bottom: 12px; font-size: 13px; }
+  .bulk-count { font-weight: 600; color: var(--sc-accent); flex: 1; }
+
+  .skeleton-list { border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; margin-top: 4px; }
+  .skeleton-row { display: flex; align-items: center; gap: 16px; padding: 13px 16px; border-bottom: 1px solid var(--sc-border); }
+  .skeleton-row:last-child { border-bottom: none; }
+
   .table-wrap { border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
   .table { width: 100%; border-collapse: collapse; }
   .table thead th { padding: 10px 16px; background: var(--sc-surface-2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--sc-text-muted); text-align: left; border-bottom: 1px solid var(--sc-border); }
   .table tbody tr { border-bottom: 1px solid var(--sc-border); }
   .table tbody tr:last-child { border-bottom: none; }
   .table tbody tr:hover { background: var(--sc-surface-2); }
+  .table tbody tr.selected { background: rgba(var(--sc-accent-rgb), .06); }
   .table td { padding: 10px 16px; font-size: 13px; }
+  .cb-col { width: 36px; padding-right: 4px !important; }
+  .cb { accent-color: var(--sc-accent); cursor: pointer; }
   .item-link { color: var(--sc-text); font-weight: 500; }
   .item-link:hover { color: var(--sc-accent); }
   .muted-cell { color: var(--sc-text-muted); font-size: 12px; }
@@ -150,4 +231,8 @@
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
   .btn--primary { background: var(--sc-accent); color: #fff; }
   .btn--primary:hover { background: var(--sc-accent-hover); }
+  .btn--ghost-sm { padding: 5px 12px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-text-muted); border-radius: var(--sc-radius); font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn--ghost-sm:hover { color: var(--sc-text); }
+  .btn--danger-sm { padding: 5px 12px; background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: var(--sc-danger); border-radius: var(--sc-radius); font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn--danger-sm:hover { background: rgba(248,113,113,.18); }
 </style>

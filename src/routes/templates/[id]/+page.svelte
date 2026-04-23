@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { EditorState } from '@codemirror/state';
   import { EditorView, basicSetup } from 'codemirror';
@@ -34,6 +34,17 @@
   let updatedAt = $state(null);
   let slugEdited = false;
 
+  // Unsaved-changes tracking
+  let savedSnap = $state('');
+  let isDirty = $derived(
+    !loading && savedSnap !== '' &&
+    JSON.stringify({ name, slug, type, source }) !== savedSnap
+  );
+
+  beforeNavigate(({ cancel }) => {
+    if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) cancel();
+  });
+
   let editorEl;
   let view;
   let fromView = false;
@@ -51,6 +62,7 @@
       type      = t.type;
       source    = t.source ?? '';
       updatedAt = t.updated_at;
+      savedSnap = JSON.stringify({ name, slug, type, source });
       // Sync into editor if it's already mounted
       if (view && source !== view.state.doc.toString()) {
         view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: source } });
@@ -96,6 +108,7 @@
     saving = true;
     try {
       await api.put(`templates/${tplId}`, { name, slug, type, source });
+      savedSnap = JSON.stringify({ name, slug, type, source });
       notifications.success('Template saved');
     } catch (e) {
       notifications.error(e.message);
@@ -116,6 +129,8 @@
   }
 </script>
 
+<svelte:window onbeforeunload={e => { if (isDirty) { e.preventDefault(); return ''; } }} />
+
 {#if notFound}
   <AdminShell title="Not found">
     {#snippet children()}<p class="muted"><a href="/admin/templates">Back to Templates</a></p>{/snippet}
@@ -124,6 +139,7 @@
   <AdminShell title={loading ? 'Loading…' : name}>
     {#snippet actions()}
       <a href="/admin/templates" class="btn btn--ghost">← Templates</a>
+      {#if isDirty}<span class="dirty-badge">Unsaved changes</span>{/if}
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save'}
@@ -179,6 +195,7 @@
 
 <style>
   .muted { color: var(--sc-text-muted); font-size: 13px; }
+  .dirty-badge { font-size: 11px; color: var(--sc-text-muted); padding: 4px 8px; }
   .layout { display: grid; grid-template-columns: 1fr 240px; gap: 20px; align-items: start; }
   .editor-wrap { border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
   .editor { min-height: 500px; }

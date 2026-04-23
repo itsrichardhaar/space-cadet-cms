@@ -123,10 +123,11 @@ class Router {
             // ── Collection Items ─────────────────────────────────────────
             'collections/{id}/items:GET'     => [CollectionItemsController::class,'list',               [0]],
             'collections/{id}/items:POST'    => [CollectionItemsController::class,'create',             [0]],
-            'collections/{id}/items/bulk:POST' => [CollectionItemsController::class,'bulk',             [0]],
-            'collections/{id}/items/{id}:GET'   => [CollectionItemsController::class,'show',            [0,1]],
-            'collections/{id}/items/{id}:PUT'   => [CollectionItemsController::class,'update',          [0,1]],
-            'collections/{id}/items/{id}:DELETE'=> [CollectionItemsController::class,'delete',          [0,1]],
+            'collections/{id}/items/bulk:POST'              => [CollectionItemsController::class,'bulk',            [0]],
+            'collections/{id}/items/{id}:GET'               => [CollectionItemsController::class,'show',           [0,1]],
+            'collections/{id}/items/{id}:PUT'               => [CollectionItemsController::class,'update',         [0,1]],
+            'collections/{id}/items/{id}:DELETE'            => [CollectionItemsController::class,'delete',         [0,1]],
+            'collections/{id}/items/{id}/duplicate:POST'    => [CollectionItemsController::class,'duplicate',      [0,1]],
 
             // ── Pages ────────────────────────────────────────────────────
             'pages:GET'                      => [PagesController::class,          'list',               []],
@@ -135,6 +136,7 @@ class Router {
             'pages/{id}:GET'                 => [PagesController::class,          'show',               [0]],
             'pages/{id}:PUT'                 => [PagesController::class,          'update',             [0]],
             'pages/{id}:DELETE'              => [PagesController::class,          'delete',             [0]],
+            'pages/{id}/duplicate:POST'      => [PagesController::class,          'duplicate',          [0]],
 
             // ── Globals ──────────────────────────────────────────────────
             'globals:GET'                    => [GlobalsController::class,        'list',               []],
@@ -219,6 +221,7 @@ class Router {
             // ── Members (admin management) ───────────────────────────────
             'members:GET'                    => [MembersController::class,        'list',               []],
             'members:POST'                   => [MembersController::class,        'create',             []],
+            'members/bulk:POST'              => [MembersController::class,        'bulk',               []],
             'members/{id}:GET'               => [MembersController::class,        'show',               [0]],
             'members/{id}:PUT'               => [MembersController::class,        'update',             [0]],
             'members/{id}:DELETE'            => [MembersController::class,        'delete',             [0]],

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] — 2026-04-23
+
+### Added
+- Toast / notification system fully wired — success and error toasts on all mutations across all editors
+- Unsaved changes warning in all 5 editors (collection items, pages, templates, members, globals) — `beforeNavigate` SPA guard + `beforeunload` browser dialog, with "Unsaved changes" badge in the action bar
+- Confirmation dialogs replace native `confirm()` in collection item editor — consistent `ConfirmDialog` component now used everywhere
+- Skeleton shimmer loading states — `Skeleton.svelte` component, applied to dashboard stat cards, pages list, and members list
+- Bulk operations on members list — checkbox select, "Delete selected" with confirmation, clear selection
+- Duplicate button on collection item editor — creates a draft copy with `(Copy)` suffix, navigates to the new item
+- Duplicate button on page editor — same pattern, creates draft copy
+- `POST /collections/{id}/items/{id}/duplicate` and `POST /pages/{id}/duplicate` API endpoints
+- `POST /members/bulk` API endpoint (delete action)
+
+### Changed
+- Collection item editor delete now uses `ConfirmDialog` component instead of native browser `confirm()`
+- Members list table gains a checkbox column and bulk action bar
+
+---
+
 ## [0.1.1] — 2026-04-23
 
 ### Added

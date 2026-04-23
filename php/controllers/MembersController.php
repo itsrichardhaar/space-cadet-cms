@@ -19,4 +19,18 @@ class MembersController {
     public function show(Request $req, int $id): void { Auth::requireRole('editor'); $u=User::findById($id)??Response::notFound(); if(!in_array($u['role'],['free_member','paid_member'],true)) Response::notFound(); Response::success(User::sanitize($u)); }
     public function update(Request $req, int $id): void { Auth::requireRole('admin'); $u=User::findById($id)??Response::notFound(); if(!in_array($u['role'],['free_member','paid_member'],true)) Response::forbidden(); $d=Validator::validate($req->json()??[],['role'=>'in:free_member,paid_member','status'=>'in:active,suspended'])->failOrReturn(); User::update($id,$d); Response::success(User::sanitize(User::findById($id))); }
     public function delete(Request $req, int $id): void { Auth::requireRole('admin'); $u=User::findById($id)??Response::notFound(); if(!in_array($u['role'],['free_member','paid_member'],true)) Response::forbidden(); User::delete($id); Response::noContent(); }
+    public function bulk(Request $req): void {
+        Auth::requireRole('admin');
+        $body = $req->json() ?? [];
+        $ids  = array_filter(array_map('intval', (array)($body['ids'] ?? [])));
+        $action = $body['action'] ?? '';
+        if (empty($ids) || $action !== 'delete') Response::error('Invalid bulk action.', 400);
+        foreach ($ids as $id) {
+            $u = User::findById($id);
+            if ($u && in_array($u['role'], ['free_member', 'paid_member'], true)) {
+                User::delete($id);
+            }
+        }
+        Response::success(['affected' => count($ids)]);
+    }
 }

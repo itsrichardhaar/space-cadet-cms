@@ -2,6 +2,7 @@
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import { userStore } from '$lib/stores/user.svelte.js';
   import api from '$lib/api.js';
+  import Skeleton from '$lib/components/common/Skeleton.svelte';
   import { onMount } from 'svelte';
   import { formatDate } from '$lib/utils/formatDate.js';
 
@@ -33,30 +34,39 @@
     </div>
 
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-card__num">{stats?.collections ?? collections.length}</div>
-        <div class="stat-card__label">Collections</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__num">{stats?.items ?? '—'}</div>
-        <div class="stat-card__label">Items</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__num">{stats?.pages ?? '—'}</div>
-        <div class="stat-card__label">Pages</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__num">{stats?.media ?? '—'}</div>
-        <div class="stat-card__label">Media</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__num">{stats?.members ?? '—'}</div>
-        <div class="stat-card__label">Members</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__num">{stats?.forms ?? '—'}</div>
-        <div class="stat-card__label">Forms</div>
-      </div>
+      {#if loading}
+        {#each {length: 6} as _}
+          <div class="stat-card">
+            <Skeleton height="36px" width="50%" radius="4px" />
+            <Skeleton height="12px" width="70%" radius="4px" class="sk-label" />
+          </div>
+        {/each}
+      {:else}
+        <div class="stat-card">
+          <div class="stat-card__num">{stats?.collections ?? collections.length}</div>
+          <div class="stat-card__label">Collections</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__num">{stats?.items ?? '—'}</div>
+          <div class="stat-card__label">Items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__num">{stats?.pages ?? '—'}</div>
+          <div class="stat-card__label">Pages</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__num">{stats?.media ?? '—'}</div>
+          <div class="stat-card__label">Media</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__num">{stats?.members ?? '—'}</div>
+          <div class="stat-card__label">Members</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__num">{stats?.forms ?? '—'}</div>
+          <div class="stat-card__label">Forms</div>
+        </div>
+      {/if}
     </div>
 
     {#if collections.length}
@@ -88,6 +98,7 @@
   .stat-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 20px; }
   .stat-card__num { font-size: 32px; font-weight: 800; color: var(--sc-accent); }
   .stat-card__label { font-size: 13px; color: var(--sc-text-muted); margin-top: 4px; }
+  :global(.sk-label) { margin-top: 8px; }
 
   .section-title { font-size: 14px; font-weight: 600; color: var(--sc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px; }
 

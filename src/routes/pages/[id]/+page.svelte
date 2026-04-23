@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import FieldRenderer from '$lib/components/fields/FieldRenderer.svelte';
@@ -22,6 +22,7 @@
 
   let loading      = $state(true);
   let saving       = $state(false);
+  let duplicating  = $state(false);
   let showDelete   = $state(false);
   let notFound     = $state(false);
   let allPages     = $state([]);
@@ -41,6 +42,17 @@
   let updatedAt    = $state(null);
 
   let slugEdited   = false;
+
+  // Unsaved-changes tracking
+  let savedSnap = $state('');
+  let isDirty = $derived(
+    !loading && savedSnap !== '' &&
+    JSON.stringify({ title, slug, status, publishedAt, parentId, metaTitle, metaDesc, fields }) !== savedSnap
+  );
+
+  beforeNavigate(({ cancel }) => {
+    if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) cancel();
+  });
 
   $effect(() => { void pageId; load(); });
 
@@ -68,6 +80,7 @@
       updatedAt   = p.updated_at;
       allPages    = (pagesRes.data ?? []).filter(pp => pp.id !== pageId);
       templates   = tplRes.data ?? [];
+      savedSnap   = JSON.stringify({ title, slug, status, publishedAt, parentId, metaTitle, metaDesc, fields });
     } catch (e) {
       if (e.status === 404) notFound = true;
       else notifications.error(e.message);
@@ -96,6 +109,7 @@
         fields,
       };
       await api.put(`pages/${pageId}`, body);
+      savedSnap = JSON.stringify({ title, slug, status, publishedAt, parentId, metaTitle, metaDesc, fields });
       notifications.success('Page saved');
     } catch (e) {
       notifications.error(e.message);
@@ -104,10 +118,24 @@
     }
   }
 
+  async function duplicate() {
+    duplicating = true;
+    try {
+      const res = await api.post(`pages/${pageId}/duplicate`);
+      notifications.success('Page duplicated.');
+      goto(`/admin/pages/${res.data.id}`);
+    } catch (e) {
+      notifications.error(e.message);
+    } finally {
+      duplicating = false;
+    }
+  }
+
   async function deletePage() {
     showDelete = false;
     try {
       await api.delete(`pages/${pageId}`);
+      savedSnap = ''; // clear dirty so beforeNavigate won't block
       notifications.success('Page deleted');
       goto('/admin/pages');
     } catch (e) {
@@ -115,6 +143,8 @@
     }
   }
 </script>
+
+<svelte:window onbeforeunload={e => { if (isDirty) { e.preventDefault(); return ''; } }} />
 
 {#if notFound}
   <AdminShell title="Page not found">
@@ -125,6 +155,10 @@
 {:else}
   <AdminShell title={loading ? 'Loading…' : title || 'Edit Page'}>
     {#snippet actions()}
+      {#if isDirty}<span class="dirty-badge">Unsaved changes</span>{/if}
+      <button class="btn btn--ghost" onclick={duplicate} disabled={duplicating || loading}>
+        {duplicating ? 'Duplicating…' : 'Duplicate'}
+      </button>
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save'}
@@ -212,6 +246,7 @@
 
 <style>
   .muted { color: var(--sc-text-muted); font-size: 13px; }
+  .dirty-badge { font-size: 11px; color: var(--sc-text-muted); padding: 4px 8px; }
   .layout { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
   .main   { display: flex; flex-direction: column; gap: 20px; }
   .sidebar { display: flex; flex-direction: column; gap: 16px; }

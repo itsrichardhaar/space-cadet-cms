@@ -2,7 +2,8 @@
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import FieldRenderer from '$lib/components/fields/FieldRenderer.svelte';
   import StatusBadge from '$lib/components/common/StatusBadge.svelte';
-  import { goto } from '$app/navigation';
+  import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import api from '$lib/api.js';
   import { onMount } from 'svelte';
@@ -23,7 +24,9 @@
   let item        = $state(null);
   let loading     = $state(true);
   let saving      = $state(false);
+  let duplicating = $state(false);
   let notFound    = $state(false);
+  let showDelete  = $state(false);
   let allLabels   = $state([]);
 
   // Editable fields
@@ -31,14 +34,24 @@
   let itemSlug = $state('');
   let status   = $state('draft');
   let publishedAt = $state(null);
-  let fields   = $state({});       // { [fieldKey]: value }
-  let labelIds = $state([]);       // array of label IDs
+  let fields   = $state({});
+  let labelIds = $state([]);
 
   let slugEdited = false;
 
+  // Unsaved-changes tracking
+  let savedSnap = $state('');
+  let isDirty = $derived(
+    !loading && savedSnap !== '' &&
+    JSON.stringify({ title, itemSlug, status, publishedAt, fields, labelIds }) !== savedSnap
+  );
+
+  beforeNavigate(({ cancel }) => {
+    if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) cancel();
+  });
+
   onMount(() => load());
 
-  // Reload when params change (SPA navigation between items)
   let _prevId = '';
   $effect(() => {
     const id = itemId;
@@ -48,12 +61,10 @@
   async function load() {
     loading = true;
     try {
-      // Load all collections to find by slug
       const allRes = await api.get('collections');
       const c = (allRes.data ?? []).find(c => c.slug === slug);
       if (!c) { notFound = true; return; }
 
-      // Load collection with full fields schema
       const [collRes, itemRes, labelsRes] = await Promise.all([
         api.get(`collections/${c.id}`),
         api.get(`collections/${c.id}/items/${itemId}`),
@@ -64,13 +75,14 @@
       item       = itemRes.data;
       allLabels  = labelsRes.data ?? [];
 
-      // Initialise editable state from item
       title       = item.title ?? '';
       itemSlug    = item.slug  ?? '';
       status      = item.status ?? 'draft';
       publishedAt = item.published_at ?? null;
       fields      = { ...(item.fields ?? {}) };
       labelIds    = (item.labels ?? []).map(l => l.id);
+
+      savedSnap = JSON.stringify({ title, itemSlug, status, publishedAt, fields, labelIds });
     } catch (e) {
       if (e.status === 404) notFound = true;
       else notifications.error(e.message);
@@ -103,6 +115,7 @@
         fields,
         labels: labelIds,
       });
+      savedSnap = JSON.stringify({ title, itemSlug, status, publishedAt, fields, labelIds });
       notifications.success('Saved.');
     } catch (e) {
       notifications.error(e.message);
@@ -111,10 +124,26 @@
     }
   }
 
-  async function deleteItem() {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  async function duplicate() {
+    duplicating = true;
+    try {
+      const res = await api.post(`collections/${collection.id}/items/${itemId}/duplicate`);
+      notifications.success('Item duplicated.');
+      goto(`/admin/collections/${slug}/${res.data.id}`);
+    } catch (e) {
+      notifications.error(e.message);
+    } finally {
+      duplicating = false;
+    }
+  }
+
+  function openDelete() { showDelete = true; }
+
+  async function confirmDelete() {
+    showDelete = false;
     try {
       await api.delete(`collections/${collection.id}/items/${itemId}`);
+      savedSnap = ''; // clear dirty state before navigating
       notifications.success(`"${title}" deleted.`);
       goto(`/admin/collections/${slug}`);
     } catch (e) {
@@ -123,11 +152,19 @@
   }
 </script>
 
+<svelte:window onbeforeunload={e => { if (isDirty) { e.preventDefault(); return ''; } }} />
+
 <AdminShell title={item?.title ?? 'Loading…'}>
   {#snippet actions()}
     {#if item}
       <a href="/admin/collections/{slug}" class="btn-ghost">← {collection?.name}</a>
-      <button class="btn-danger-ghost" onclick={deleteItem}>Delete</button>
+      {#if isDirty}
+        <span class="dirty-badge">Unsaved changes</span>
+      {/if}
+      <button class="btn-ghost" onclick={duplicate} disabled={duplicating}>
+        {duplicating ? 'Duplicating…' : 'Duplicate'}
+      </button>
+      <button class="btn-danger-ghost" onclick={openDelete}>Delete</button>
       <button class="btn-primary" onclick={save} disabled={saving}>
         {saving ? 'Saving…' : 'Save'}
       </button>
@@ -160,7 +197,6 @@
 
       <!-- Sidebar: core properties -->
       <aside class="sidebar">
-        <!-- Status -->
         {#if collection?.supports_status}
           <div class="side-card">
             <div class="side-card-head">Status</div>
@@ -181,7 +217,6 @@
           </div>
         {/if}
 
-        <!-- Title & Slug -->
         <div class="side-card">
           <div class="side-card-head">Identity</div>
           <div class="side-card-body">
@@ -197,7 +232,6 @@
           </div>
         </div>
 
-        <!-- Labels -->
         {#if allLabels.length > 0}
           <div class="side-card">
             <div class="side-card-head">Labels</div>
@@ -213,7 +247,6 @@
           </div>
         {/if}
 
-        <!-- Meta info -->
         <div class="side-card side-card--meta">
           <div class="meta-row"><span>Created</span><span>{formatDate(item.created_at, 'relative')}</span></div>
           <div class="meta-row"><span>Updated</span><span>{formatDate(item.updated_at, 'relative')}</span></div>
@@ -226,30 +259,34 @@
   {/if}
 </AdminShell>
 
+<ConfirmDialog
+  open={showDelete}
+  title="Delete item"
+  message="Delete '{title}'? This cannot be undone."
+  confirmLabel="Delete"
+  danger={true}
+  onconfirm={confirmDelete}
+  oncancel={() => showDelete = false}
+/>
+
 <style>
   .muted { color: var(--sc-text-muted); }
   .err   { color: var(--sc-danger); }
+  .dirty-badge { font-size: 11px; color: var(--sc-text-muted); padding: 4px 8px; }
 
   .layout { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
-
-  /* --- Main --- */
-  .main {}
 
   .no-fields { border: 2px dashed var(--sc-border); border-radius: var(--sc-radius-lg); padding: 40px; text-align: center; color: var(--sc-text-muted); }
   .schema-link { display: inline-block; margin-top: 8px; color: var(--sc-accent); font-size: 13px; }
 
   .fields-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 22px; }
-  .field-wrap {}
 
-  /* --- Sidebar --- */
   .sidebar { display: flex; flex-direction: column; gap: 12px; }
 
   .side-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
   .side-card-head { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sc-text-muted); border-bottom: 1px solid var(--sc-border); }
   .side-card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
-  .select { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 7px 10px; color: var(--sc-text); font-size: 13.5px; width: 100%; cursor: pointer; }
-  .select:focus { outline: none; border-color: var(--sc-accent); }
   .input { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 7px 10px; color: var(--sc-text); font-size: 13.5px; width: 100%; }
   .input:focus { outline: none; border-color: var(--sc-accent); }
   .input.slug { font-family: var(--sc-font-mono); font-size: 12px; color: var(--sc-text-muted); }
@@ -267,12 +304,12 @@
   .meta-row span:first-child { color: var(--sc-text-muted); }
   .meta-row span:last-child  { color: var(--sc-text); }
 
-  /* --- Action buttons --- */
   .btn-primary { display: inline-flex; align-items: center; padding: 8px 18px; background: var(--sc-accent); color: #fff; border-radius: var(--sc-radius); font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary:hover:not(:disabled) { background: var(--sc-accent-hover); }
   .btn-primary:disabled { opacity: .6; cursor: default; }
-  .btn-ghost { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--sc-border); color: var(--sc-text-muted); border-radius: var(--sc-radius); font-size: 13.5px; text-decoration: none; }
-  .btn-ghost:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .btn-ghost { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--sc-border); color: var(--sc-text-muted); border-radius: var(--sc-radius); font-size: 13.5px; text-decoration: none; background: none; cursor: pointer; }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .btn-ghost:disabled { opacity: .5; cursor: default; }
   .btn-danger-ghost { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--sc-border); color: var(--sc-danger); border-radius: var(--sc-radius); font-size: 13.5px; background: none; cursor: pointer; }
   .btn-danger-ghost:hover { border-color: var(--sc-danger); }
 </style>

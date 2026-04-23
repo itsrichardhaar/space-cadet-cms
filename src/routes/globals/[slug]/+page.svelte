@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import FieldRenderer from '$lib/components/fields/FieldRenderer.svelte';
@@ -15,6 +15,16 @@
   let group     = $state(null);
   let values    = $state({});
 
+  // Unsaved-changes tracking
+  let savedSnap = $state('');
+  let isDirty = $derived(
+    !loading && savedSnap !== '' && JSON.stringify(values) !== savedSnap
+  );
+
+  beforeNavigate(({ cancel }) => {
+    if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) cancel();
+  });
+
   $effect(() => { void slug; load(); });
 
   async function load() {
@@ -26,6 +36,7 @@
       const res = await api.get(`globals/${g.id}`);
       group  = res.data;
       values = { ...(res.data.values ?? {}) };
+      savedSnap = JSON.stringify(values);
     } catch (e) {
       if (e.status === 404) notFound = true;
       else notifications.error(e.message);
@@ -38,6 +49,7 @@
     saving = true;
     try {
       await api.put(`globals/${group.id}`, { values });
+      savedSnap = JSON.stringify(values);
       notifications.success('Globals saved');
     } catch (e) {
       notifications.error(e.message);
@@ -46,6 +58,8 @@
     }
   }
 </script>
+
+<svelte:window onbeforeunload={e => { if (isDirty) { e.preventDefault(); return ''; } }} />
 
 {#if notFound}
   <AdminShell title="Not found">
@@ -57,6 +71,7 @@
   <AdminShell title={loading ? 'Loading…' : (group?.name ?? 'Globals')}>
     {#snippet actions()}
       <a href="/admin/globals" class="btn btn--ghost">← All Globals</a>
+      {#if isDirty}<span class="dirty-badge">Unsaved changes</span>{/if}
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>
@@ -88,6 +103,7 @@
 
 <style>
   .muted { color: var(--sc-text-muted); font-size: 13px; }
+  .dirty-badge { font-size: 11px; color: var(--sc-text-muted); padding: 4px 8px; }
   .fields-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 24px; max-width: 680px; }
   .desc { margin: 0 0 20px; font-size: 13px; color: var(--sc-text-muted); }
   .fields-list { display: flex; flex-direction: column; gap: 20px; }

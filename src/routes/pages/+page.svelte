@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+  import Skeleton from '$lib/components/common/Skeleton.svelte';
   import StatusBadge from '$lib/components/common/StatusBadge.svelte';
   import EmptyState from '$lib/components/common/EmptyState.svelte';
   import { api } from '$lib/api.js';
@@ -62,7 +63,16 @@
 
   {#snippet children()}
     {#if loading}
-      <p class="muted">Loading…</p>
+      <div class="skeleton-list">
+        {#each {length: 5} as _}
+          <div class="skeleton-row">
+            <Skeleton height="13px" width="45%" />
+            <Skeleton height="13px" width="12%" />
+            <Skeleton height="20px" width="70px" radius="20px" />
+            <Skeleton height="13px" width="10%" />
+          </div>
+        {/each}
+      </div>
     {:else if pages.length === 0}
       <EmptyState
         title="No pages yet"
@@ -122,6 +132,9 @@
 
 <style>
   .muted { color: var(--sc-text-muted); font-size: 13px; }
+  .skeleton-list { border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
+  .skeleton-row { display: flex; align-items: center; gap: 16px; padding: 13px 16px; border-bottom: 1px solid var(--sc-border); }
+  .skeleton-row:last-child { border-bottom: none; }
   .table-wrap { border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
   .table { width: 100%; border-collapse: collapse; }
   .table thead th { padding: 10px 16px; background: var(--sc-surface-2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--sc-text-muted); text-align: left; border-bottom: 1px solid var(--sc-border); }

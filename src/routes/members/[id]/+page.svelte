@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import StatusBadge from '$lib/components/common/StatusBadge.svelte';
@@ -33,6 +33,16 @@
   let lastLogin = $state(null);
   let createdAt = $state(null);
 
+  // Unsaved-changes tracking
+  let savedSnap = $state('');
+  let isDirty = $derived(
+    !loading && savedSnap !== '' && JSON.stringify({ role, status }) !== savedSnap
+  );
+
+  beforeNavigate(({ cancel }) => {
+    if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) cancel();
+  });
+
   $effect(() => { void memberId; load(); });
 
   async function load() {
@@ -47,6 +57,7 @@
       status   = m.status ?? 'active';
       lastLogin = m.last_login_at;
       createdAt = m.created_at;
+      savedSnap = JSON.stringify({ role, status });
     } catch (e) {
       if (e.status === 404) notFound = true;
       else notifications.error(e.message);
@@ -59,6 +70,7 @@
     saving = true;
     try {
       await api.put(`members/${memberId}`, { role, status });
+      savedSnap = JSON.stringify({ role, status });
       notifications.success('Member updated');
     } catch (e) {
       notifications.error(e.message);
@@ -71,6 +83,7 @@
     showDelete = false;
     try {
       await api.delete(`members/${memberId}`);
+      savedSnap = '';
       notifications.success('Member deleted');
       goto('/admin/members');
     } catch (e) {
@@ -78,6 +91,8 @@
     }
   }
 </script>
+
+<svelte:window onbeforeunload={e => { if (isDirty) { e.preventDefault(); return ''; } }} />
 
 {#if notFound}
   <AdminShell title="Not found">
@@ -87,6 +102,7 @@
   <AdminShell title={loading ? 'Loading…' : dispName}>
     {#snippet actions()}
       <a href="/admin/members" class="btn btn--ghost">← All Members</a>
+      {#if isDirty}<span class="dirty-badge">Unsaved changes</span>{/if}
       <button class="btn btn--ghost btn--danger" onclick={() => showDelete = true}>Delete</button>
       <button class="btn btn--primary" onclick={save} disabled={saving || loading}>
         {saving ? 'Saving…' : 'Save'}
@@ -141,6 +157,7 @@
 
 <style>
   .muted { color: var(--sc-text-muted); font-size: 13px; }
+  .dirty-badge { font-size: 11px; color: var(--sc-text-muted); padding: 4px 8px; }
   .layout { display: flex; flex-direction: column; gap: 16px; max-width: 520px; }
   .card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 18px; }
   .card--meta { padding: 16px 18px; }

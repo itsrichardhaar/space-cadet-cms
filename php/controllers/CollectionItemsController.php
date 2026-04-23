@@ -65,6 +65,24 @@ class CollectionItemsController {
         }
         Response::success(['affected'=>count($ids)]);
     }
+    public function duplicate(Request $req, int $collectionId, int $itemId): void {
+        Auth::requireRole('editor');
+        $item = CollectionItem::findById($itemId) ?? Response::notFound();
+        if ((int)$item['collection_id'] !== $collectionId) Response::notFound();
+        $newTitle = $item['title'] . ' (Copy)';
+        $newSlug  = CollectionItem::uniqueSlug($collectionId, $newTitle);
+        $data = [
+            'title'     => $newTitle,
+            'slug'      => $newSlug,
+            'status'    => 'draft',
+            'fields'    => $item['fields'] ?? [],
+            'labels'    => [],
+            'folder_id' => $item['folder_id'] ?? null,
+        ];
+        $id = CollectionItem::create($collectionId, $data, Auth::userId());
+        AuditLog::write(Auth::userId(), 'duplicated', 'collection_item', $id, ['source_id' => $itemId, 'title' => $newTitle]);
+        Response::created(CollectionItem::findById($id));
+    }
     // ── Public API ───────────────────────────────────────────
     public function publicList(Request $req, int $collectionId): void {
         if(!RateLimit::checkContentApi($req->ip())) Response::tooManyRequests();

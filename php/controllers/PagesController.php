@@ -25,6 +25,28 @@ class PagesController {
         Response::success($p);
     }
     public function delete(Request $req, int $id): void { Auth::requireRole('admin'); $p=Page::findById($id)??Response::notFound(); Page::delete($id); SearchIndex::remove('page',$id); EventEmitter::emit('page.deleted',['id'=>$id]); AuditLog::write(Auth::userId(),'deleted','page',$id,['title'=>$p['title']]); Response::noContent(); }
+    public function duplicate(Request $req, int $id): void {
+        Auth::requireRole('editor');
+        $p = Page::findById($id) ?? Response::notFound();
+        $newTitle = $p['title'] . ' (Copy)';
+        $base = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $newTitle));
+        $newSlug  = trim($base, '-');
+        $data = [
+            'title'       => $newTitle,
+            'slug'        => $newSlug,
+            'status'      => 'draft',
+            'parent_id'   => $p['parent_id']   ?? null,
+            'template_id' => $p['template_id'] ?? null,
+            'meta_title'  => $p['meta_title']  ?? null,
+            'meta_desc'   => $p['meta_desc']   ?? null,
+            'fields'      => $p['fields']      ?? [],
+            'author_id'   => Auth::userId(),
+        ];
+        $newId = Page::create($data);
+        SearchIndex::index('page', $newId, $newTitle, '');
+        AuditLog::write(Auth::userId(), 'duplicated', 'page', $newId, ['source_id' => $id, 'title' => $newTitle]);
+        Response::created(Page::findById($newId));
+    }
     public function reorder(Request $req): void { Auth::requireRole('editor'); $items=($req->json())['items']??[]; Page::reorder($items); Response::success(['reordered'=>count($items)]); }
     public function publicList(Request $req): void {
         if(!RateLimit::checkContentApi($req->ip())) Response::tooManyRequests();
