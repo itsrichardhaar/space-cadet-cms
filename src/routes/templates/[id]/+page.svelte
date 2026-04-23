@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { EditorState } from '@codemirror/state';
@@ -45,7 +45,7 @@
     if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) cancel();
   });
 
-  let editorEl;
+  let editorEl = $state();
   let view;
   let fromView = false;
 
@@ -75,10 +75,12 @@
     }
   }
 
-  onMount(() => {
-    view = new EditorView({
+  // Mount editor once editorEl enters the DOM (after loading → false)
+  $effect(() => {
+    if (!editorEl) return;
+    const v = new EditorView({
       state: EditorState.create({
-        doc: source,
+        doc: untrack(() => source),
         extensions: [
           basicSetup,
           oneDark,
@@ -94,6 +96,8 @@
       }),
       parent: editorEl,
     });
+    view = v;
+    return () => { v.destroy(); view = null; };
   });
 
   onDestroy(() => view?.destroy());
@@ -173,8 +177,25 @@
               </div>
             {/if}
             <div class="card card--help">
+              <h3 class="card-title">Variables</h3>
+              <p class="help-text">Always available:</p>
+              <table class="var-table">
+                <tbody>
+                  <tr><td><code>{'{{ title }}'}</code></td><td>Page title</td></tr>
+                  <tr><td><code>{'{{ slug }}'}</code></td><td>URL slug</td></tr>
+                  <tr><td><code>{'{{ meta_title }}'}</code></td><td>SEO title</td></tr>
+                  <tr><td><code>{'{{ meta_desc }}'}</code></td><td>Meta desc</td></tr>
+                </tbody>
+              </table>
+              <p class="help-text" style="margin-top:10px">Custom fields are top-level: <code>{'{{ hero_text }}'}</code></p>
+              <p class="help-text">Raw HTML (richtext): <code>{'{{{ body }}}'}</code></p>
+            </div>
+            <div class="card card--help">
               <h3 class="card-title">Syntax</h3>
-              <p class="help-text">Use <code>{'{{ variable }}'}</code> for output, <code>data-sc-repeat="items"</code> for loops, and <code>data-sc-if="condition"</code> for conditionals.</p>
+              <p class="help-text help-text--mono"><span class="hl">{'{{ field }}'}</span> — escaped output</p>
+              <p class="help-text help-text--mono"><span class="hl">{'{{{ field }}}'}</span> — raw HTML</p>
+              <p class="help-text help-text--mono" style="margin-top:6px"><span class="hl">{'{% for item in items %}'}</span><br>{'  {{ item.name }}'}<br><span class="hl">{'{% endfor %}'}</span></p>
+              <p class="help-text help-text--mono" style="margin-top:6px"><span class="hl">{'{% if title %}'}</span><br>{'  …'}<br><span class="hl">{'{% endif %}'}</span></p>
             </div>
           </aside>
         </div>
@@ -214,6 +235,12 @@
   .meta-row span { color: var(--sc-text); }
   .help-text { margin: 0; font-size: 12px; color: var(--sc-text-muted); line-height: 1.6; }
   .help-text code { font-family: var(--sc-font-mono); color: var(--sc-accent); font-size: 11px; }
+  .help-text--mono { font-family: var(--sc-font-mono); font-size: 11px; line-height: 1.8; }
+  .hl { color: var(--sc-accent); }
+  .var-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .var-table td { font-size: 11px; padding: 2px 0; color: var(--sc-text-muted); }
+  .var-table td:first-child { width: 55%; }
+  .var-table td code { font-family: var(--sc-font-mono); color: var(--sc-accent); }
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
   .btn--primary { background: var(--sc-accent); color: #fff; }
   .btn--primary:hover:not(:disabled) { background: var(--sc-accent-hover); }

@@ -1,6 +1,36 @@
-# Outpost CMS — Feature Log
+# Space Cadet CMS — Feature Log
 
 Maintained as features are built. Used for documentation generation.
+
+---
+
+## Front-End Page Renderer (v0.1.3)
+
+- **`php/frontend.php`** — routes published pages to their public URLs; parses slug from `REQUEST_URI`, looks up page by slug, checks `status = published`
+- **Template rendering** — if the page has a `template_id`, renders through the Liquid/data-attribute template engine
+- **Fallback shell** — pages without a template show a styled preview (title, fields table, link to assign a template in admin)
+- **404 handler** — missing or unpublished slugs return a proper 404 page
+- **Test-site router** — all non-admin, non-API paths now served by `frontend.php` instead of falling through to `api.php`
+
+## Template Assignment in Page Editor (v0.1.3)
+
+- **Template card in sidebar** — "Template" card with dropdown of all `page`-type templates; "Edit template →" shortcut link when a template is selected
+- **Saved on page save** — `template_id` included in the PUT body and tracked by the unsaved-changes system
+
+## Template Editor Fixes (v0.1.3)
+
+- **CodeMirror mounts correctly** — editor element was inside `{#if loading}` so `onMount` fired before it existed; replaced with `$effect` + `$state` binding
+- **Typing no longer resets focus** — `doc: source` inside the `$effect` was a tracked dependency causing editor recreation on each keystroke; fixed with `untrack()`
+- **Expanded syntax reference** — sidebar shows available variables and full syntax examples for `{{ }}`, `{{{ }}}`, loops, and conditionals
+
+## Admin SPA Polish (v0.1.2)
+
+- **Unsaved-changes guard** — `beforeNavigate` + `beforeunload` with "Unsaved changes" badge across all 5 editors (collection items, pages, templates, members, globals)
+- **Skeleton loading states** — `Skeleton.svelte` shimmer component applied to dashboard stats, pages list, and members list
+- **Bulk delete for members** — checkbox select, "Delete selected" confirmation, `POST /members/bulk` API endpoint
+- **Duplicate** — collection items and pages can be duplicated to a draft copy; `POST /…/duplicate` endpoints
+- **Confirm dialogs** — native `confirm()` replaced with `ConfirmDialog` component everywhere
+- **Toast notifications** — success/error toasts wired across all mutations
 
 ---
 

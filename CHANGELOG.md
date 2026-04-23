@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] — 2026-04-23
+
+### Added
+- Front-end page renderer (`php/frontend.php`) — published pages now render at their public URL; falls back to a preview shell when no template is assigned
+- Test-site router updated to serve `frontend.php` for all non-admin, non-API paths (visiting `/home` now renders the page instead of returning a JSON 404)
+- Template assignment in page editor — "Template" sidebar card with dropdown of all page-type templates and an "Edit template →" shortcut link
+
+### Fixed
+- Template editor CodeMirror not mounting — `editorEl` was inside `{#if loading}` so `onMount` fired before the element existed; replaced with `$effect` + `$state` binding so the editor mounts when the element enters the DOM
+- Template editor losing focus on every keystroke — `doc: source` inside the creation `$effect` made `source` a tracked dependency, destroying and recreating the editor on each character; fixed with `untrack(() => source)`
+
+### Changed
+- Template editor syntax reference expanded — two sidebar cards now show available variables (`title`, `slug`, `meta_title`, `meta_desc`, custom fields) and full syntax examples for output, raw HTML, loops, and conditionals
+
+---
+
 ## [0.1.2] — 2026-04-23
 
 ### Added

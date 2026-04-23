@@ -13,7 +13,7 @@ A channel is any live deployment of Space Cadet CMS. Log it here when it goes up
 
 | Channel | Environment | URL | Version | Status | Deployed |
 |---|---|---|---|---|---|
-| test-site | Local dev | http://localhost:8000 | 0.1.0 | Active | 2026-04-22 |
+| test-site | Local dev | http://localhost:8888 | 0.1.3 | Active | 2026-04-23 |
 
 ### Adding a Channel
 
@@ -32,12 +32,12 @@ When you deploy to a new environment, append a row to the table above and add a 
 
 ### test-site — Local Dev
 
-- **URL:** http://localhost:8000
-- **Version:** 0.1.0
-- **PHP:** 8.1+ (built-in server via `php -S localhost:8000 -t php/`)
+- **URL:** http://localhost:8888
+- **Version:** 0.1.3
+- **PHP:** 8.1+ (built-in server via `npm run test-site`)
 - **Server:** PHP built-in dev server
 - **Location:** `test-site/` directory in project root
-- **Notes:** Admin at http://localhost:5173/admin (Vite HMR dev) or http://localhost:8000/dist/ (built SPA). Database at `test-site/space-cadet/storage/db/space-cadet.sqlite`. Use for all local feature testing before GitHub push.
+- **Notes:** Admin at http://localhost:8888/admin. Front-end pages at http://localhost:8888/{slug}. Database at `test-site/space-cadet/storage/db/space-cadet.sqlite`. Use for all local feature testing before GitHub push.
 
 ---
 

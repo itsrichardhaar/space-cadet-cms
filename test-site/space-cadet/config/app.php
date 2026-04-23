@@ -3,7 +3,7 @@
  * Space Cadet CMS — Application Configuration
  */
 
-define('SC_VERSION', '0.1.1');
+define('SC_VERSION', '0.1.2');
 define('SC_ROOT', dirname(__DIR__));
 define('SC_STORAGE', SC_ROOT . '/storage');
 define('SC_UPLOADS', SC_STORAGE . '/uploads');

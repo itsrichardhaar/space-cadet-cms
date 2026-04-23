@@ -41,13 +41,14 @@
   let createdAt    = $state(null);
   let updatedAt    = $state(null);
 
+  let templateId   = $state('');
   let slugEdited   = false;
 
   // Unsaved-changes tracking
   let savedSnap = $state('');
   let isDirty = $derived(
     !loading && savedSnap !== '' &&
-    JSON.stringify({ title, slug, status, publishedAt, parentId, metaTitle, metaDesc, fields }) !== savedSnap
+    JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields }) !== savedSnap
   );
 
   beforeNavigate(({ cancel }) => {
@@ -69,7 +70,8 @@
       if (!p) { notFound = true; return; }
       title       = p.title ?? '';
       slug        = p.slug  ?? '';
-      parentId    = p.parent_id ? String(p.parent_id) : '';
+      parentId    = p.parent_id   ? String(p.parent_id)   : '';
+      templateId  = p.template_id ? String(p.template_id) : '';
       status      = p.status    ?? 'draft';
       publishedAt = p.published_at ? new Date(p.published_at * 1000).toISOString().slice(0,16) : '';
       metaTitle   = p.meta_title ?? '';
@@ -80,7 +82,7 @@
       updatedAt   = p.updated_at;
       allPages    = (pagesRes.data ?? []).filter(pp => pp.id !== pageId);
       templates   = tplRes.data ?? [];
-      savedSnap   = JSON.stringify({ title, slug, status, publishedAt, parentId, metaTitle, metaDesc, fields });
+      savedSnap   = JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields });
     } catch (e) {
       if (e.status === 404) notFound = true;
       else notifications.error(e.message);
@@ -101,7 +103,8 @@
         title: title.trim(),
         slug,
         status,
-        parent_id: parentId ? parseInt(parentId) : null,
+        parent_id:   parentId   ? parseInt(parentId)   : null,
+        template_id: templateId ? parseInt(templateId) : null,
         meta_title: metaTitle || null,
         meta_desc:  metaDesc  || null,
         published_at: (status === 'published' && publishedAt)
@@ -109,7 +112,7 @@
         fields,
       };
       await api.put(`pages/${pageId}`, body);
-      savedSnap = JSON.stringify({ title, slug, status, publishedAt, parentId, metaTitle, metaDesc, fields });
+      savedSnap = JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields });
       notifications.success('Page saved');
     } catch (e) {
       notifications.error(e.message);
@@ -198,6 +201,18 @@
               {/if}
             </div>
 
+            <!-- Template card -->
+            <div class="card">
+              <h3 class="card-title">Template</h3>
+              <Select
+                bind:value={templateId}
+                options={[{ value: '', label: 'No template' }, ...templates.filter(t => t.type === 'page').map(t => ({ value: String(t.id), label: t.name }))]}
+              />
+              {#if templateId}
+                <a href="/admin/templates/{templateId}" class="tpl-link">Edit template →</a>
+              {/if}
+            </div>
+
             <!-- Identity card -->
             <div class="card">
               <h3 class="card-title">Identity</h3>
@@ -260,6 +275,8 @@
   .input--ta { resize: vertical; font-family: inherit; }
   .meta-row { margin: 0 0 6px; font-size: 12px; color: var(--sc-text-muted); }
   .meta-row span { color: var(--sc-text); }
+  .tpl-link { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--sc-accent); text-decoration: none; }
+  .tpl-link:hover { text-decoration: underline; }
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
   .btn--primary { background: var(--sc-accent); color: #fff; }
   .btn--primary:hover:not(:disabled) { background: var(--sc-accent-hover); }

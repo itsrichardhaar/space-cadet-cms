@@ -11,7 +11,7 @@
  *   /admin/_app/*                 → space-cadet/dist/_app/* (SPA assets)
  *   /space-cadet/api.php          → space-cadet/api.php (REST/GraphQL)
  *   /space-cadet/install.php      → space-cadet/install.php
- *   everything else               → space-cadet/api.php (front-end routing)
+ *   everything else               → space-cadet/frontend.php (front-end page renderer)
  */
 
 $uri  = $_SERVER['REQUEST_URI'] ?? '/';
@@ -117,6 +117,6 @@ if ($path === '/' || $path === '') {
     exit;
 }
 
-// ── Front-end page routing → CMS API ─────────────────────────
+// ── Front-end page routing → page renderer ───────────────────
 chdir($cms);
-require $cms . '/api.php';
+require $cms . '/frontend.php';
