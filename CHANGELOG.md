@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.5] — 2026-04-24
+
+### Added
+- Components section — new admin section for reusable HTML partials (navbars, footers, cards); stored as `type: partial`, separate list and editor from Templates; full CodeMirror editor with include-tag helper and variable reference
+- Assets section — CSS and JS file manager; CodeMirror editor per file; files stored in `storage/assets/` and served at `/assets/{filename}`; `<link>`/`<script>` include snippets in sidebar
+- Custom fields in page editor — drag-reorderable field schema editor (text, textarea, richtext, number, checkbox, select, radio, date); fields stored in `page_field_defs` and `page_fields` tables; field content editable inline on the same page
+- Sidebar navigation updated — Components and Assets entries added under Templates; updated icons for Templates, Assets, and Components
+
+### Fixed
+- Component creation always saved as `type: page` — `Validator::validate()` stripped `type` and `source` from the POST body because they weren't listed in the rules; controller now passes both through explicitly
+- Template compiler `{{{ raw }}}` broken — triple-brace pass ran after double-brace pass, causing partial consumption of `{{{ content }}}` and a PHP syntax error; fixed by swapping compile order
+- Components list stuck on "Loading…" on navigation — replaced `onMount` with `$effect` for reliable re-fetch on SvelteKit back-navigation
+- Test-site router `/` path hit broken `index.php` redirect instead of the front-end renderer; now routes directly to `frontend.php` (slug "home")
+
+### Changed
+- Templates list excludes `type: partial` — components no longer appear in the Templates section
+
+---
+
 ## [0.1.3] — 2026-04-23
 
 ### Added

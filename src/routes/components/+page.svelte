@@ -1,5 +1,4 @@
 <script>
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import EmptyState from '$lib/components/common/EmptyState.svelte';
@@ -9,31 +8,24 @@
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { formatDate } from '$lib/utils/formatDate.js';
   import { slugify } from '$lib/utils/slugify.js';
-  import Select from '$lib/components/common/Select.svelte';
 
-  const TEMPLATE_TYPE_OPTS = [
-    { value: 'page',   label: 'Page' },
-    { value: 'layout', label: 'Layout' },
-  ];
-
-  let templates  = $state([]);
+  let components = $state([]);
   let loading    = $state(true);
   let deleteItem = $state(null);
   let showCreate = $state(false);
 
   let newName    = $state('');
   let newSlug    = $state('');
-  let newType    = $state('page');
   let creating   = $state(false);
   let slugEdited = false;
 
-  onMount(loadTemplates);
+  $effect(() => { load(); });
 
-  async function loadTemplates() {
+  async function load() {
     loading = true;
     try {
       const res = await api.get('templates');
-      templates = (res.data ?? []).filter(t => t.type !== 'partial');
+      components = (res.data ?? []).filter(t => t.type === 'partial');
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -48,13 +40,13 @@
     creating = true;
     try {
       const res = await api.post('templates', {
-        name: newName.trim(),
-        slug: newSlug || slugify(newName),
-        type: newType,
+        name:   newName.trim(),
+        slug:   newSlug || slugify(newName),
+        type:   'partial',
         source: '',
       });
-      notifications.success('Template created');
-      goto(`/admin/templates/${res.data.id}`);
+      notifications.success('Component created');
+      goto(`/admin/components/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -67,51 +59,45 @@
     deleteItem = null;
     try {
       await api.delete(`templates/${item.id}`);
-      templates = templates.filter(t => t.id !== item.id);
-      notifications.success('Template deleted');
+      components = components.filter(c => c.id !== item.id);
+      notifications.success('Component deleted');
     } catch (e) {
       notifications.error(e.message);
     }
   }
 
-  function typeColor(type) {
-    const map = { page: 'var(--sc-accent)', partial: 'var(--sc-info)', layout: 'var(--sc-success)' };
-    return map[type] ?? 'var(--sc-text-muted)';
-  }
+  function reset() { newName = ''; newSlug = ''; slugEdited = false; }
 </script>
 
-<AdminShell title="Templates">
+<AdminShell title="Components">
   {#snippet actions()}
-    <button class="btn btn--primary" onclick={() => showCreate = true}>+ New Template</button>
+    <button class="btn btn--primary" onclick={() => { reset(); showCreate = true; }}>+ New Component</button>
   {/snippet}
 
   {#snippet children()}
     {#if loading}
       <p class="muted">Loading…</p>
-    {:else if templates.length === 0}
+    {:else if components.length === 0}
       <EmptyState
-        title="No templates yet"
-        message="Templates compile HTML with Liquid-style syntax and data-sc-* attributes."
-        action="New Template"
-        onaction={() => showCreate = true}
+        title="No components yet"
+        message="Components are reusable HTML snippets — navbars, footers, cards. Include them in any template using the include tag."
+        action="New Component"
+        onaction={() => { reset(); showCreate = true; }}
       />
     {:else}
       <div class="table-wrap">
         <table class="table">
           <thead>
-            <tr><th>Name</th><th>Slug</th><th>Type</th><th>Updated</th><th></th></tr>
+            <tr><th>Name</th><th>Slug</th><th>Updated</th><th></th></tr>
           </thead>
           <tbody>
-            {#each templates as t (t.id)}
+            {#each components as c (c.id)}
               <tr>
-                <td><a href="/admin/templates/{t.id}" class="item-link">{t.name}</a></td>
-                <td class="muted-cell">{t.slug}</td>
-                <td>
-                  <span class="type-badge" style="color:{typeColor(t.type)};background:{typeColor(t.type)}18">{t.type}</span>
-                </td>
-                <td class="muted-cell">{formatDate(t.updated_at)}</td>
+                <td><a href="/admin/components/{c.id}" class="item-link">{c.name}</a></td>
+                <td class="muted-cell mono">{c.slug}</td>
+                <td class="muted-cell">{formatDate(c.updated_at)}</td>
                 <td class="actions-cell">
-                  <button class="btn-icon btn-icon--danger" onclick={() => deleteItem = t} title="Delete">
+                  <button class="btn-icon btn-icon--danger" onclick={() => deleteItem = c} title="Delete">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                       <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
                     </svg>
@@ -122,24 +108,23 @@
           </tbody>
         </table>
       </div>
+
+      <p class="include-hint">Include in any template: <code>{'{% include "slug" %}'}</code></p>
     {/if}
   {/snippet}
 </AdminShell>
 
-<Modal open={showCreate} title="New Template" onclose={() => showCreate = false}>
+<Modal open={showCreate} title="New Component" onclose={() => showCreate = false}>
   {#snippet children()}
     <div class="form">
       <div class="field">
         <label class="label">Name <span class="req">*</span></label>
-        <input class="input" type="text" bind:value={newName} oninput={onNameInput} placeholder="e.g. Blog Post" />
+        <input class="input" type="text" bind:value={newName} oninput={onNameInput} placeholder="e.g. Site Header" autofocus />
       </div>
       <div class="field">
         <label class="label">Slug</label>
         <input class="input" type="text" bind:value={newSlug} oninput={() => slugEdited = true} placeholder="auto-generated" />
-      </div>
-      <div class="field">
-        <label class="label">Type</label>
-        <Select bind:value={newType} options={TEMPLATE_TYPE_OPTS} />
+        <p class="hint">Include with <code>{'{% include "'}{newSlug || slugify(newName) || 'slug'}{'"%}'}</code></p>
       </div>
     </div>
   {/snippet}
@@ -153,8 +138,8 @@
 
 <ConfirmDialog
   open={!!deleteItem}
-  title="Delete template"
-  message="Delete '{deleteItem?.name}'?"
+  title="Delete component"
+  message="Delete '{deleteItem?.name}'? This cannot be undone."
   confirmLabel="Delete"
   danger={true}
   onconfirm={confirmDelete}
@@ -173,14 +158,18 @@
   .item-link { color: var(--sc-text); font-weight: 500; }
   .item-link:hover { color: var(--sc-accent); }
   .muted-cell { color: var(--sc-text-muted); font-size: 12px; }
-  .type-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+  .mono { font-family: var(--sc-font-mono); }
   .actions-cell { text-align: right; width: 40px; }
   .btn-icon { background: none; border: none; color: var(--sc-text-muted); padding: 4px; cursor: pointer; border-radius: var(--sc-radius); display: inline-flex; }
   .btn-icon--danger:hover { color: var(--sc-danger); background: rgba(248,113,113,.1); }
+  .include-hint { margin-top: 16px; font-size: 12px; color: var(--sc-text-muted); }
+  .include-hint code { font-family: var(--sc-font-mono); color: var(--sc-accent); font-size: 11px; }
   .form { display: flex; flex-direction: column; gap: 16px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .label { font-size: 13px; font-weight: 600; color: var(--sc-text); }
   .req { color: var(--sc-danger); }
+  .hint { margin: 0; font-size: 12px; color: var(--sc-text-muted); }
+  .hint code { font-family: var(--sc-font-mono); color: var(--sc-accent); font-size: 11px; }
   .input { padding: 8px 12px; background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); color: var(--sc-text); font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
   .input:focus { border-color: var(--sc-accent); }
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; }

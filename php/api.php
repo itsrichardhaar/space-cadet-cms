@@ -36,6 +36,7 @@ require_once __DIR__ . '/models/ApiKey.php';
 require_once __DIR__ . '/models/Folder.php';
 require_once __DIR__ . '/models/Label.php';
 require_once __DIR__ . '/models/Template.php';
+require_once __DIR__ . '/models/SiteAsset.php';
 require_once __DIR__ . '/models/SearchIndex.php';
 require_once __DIR__ . '/models/AuditLog.php';
 
@@ -58,6 +59,7 @@ require_once __DIR__ . '/controllers/LabelsController.php';
 require_once __DIR__ . '/controllers/CompassController.php';
 require_once __DIR__ . '/controllers/BlueprintController.php';
 require_once __DIR__ . '/controllers/MembersController.php';
+require_once __DIR__ . '/controllers/AssetsController.php';
 require_once __DIR__ . '/controllers/SettingsController.php';
 
 // One-time migration: rename forge_jobs → blueprint_jobs (Blueprint AI rename)

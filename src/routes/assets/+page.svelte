@@ -11,29 +11,29 @@
   import { slugify } from '$lib/utils/slugify.js';
   import Select from '$lib/components/common/Select.svelte';
 
-  const TEMPLATE_TYPE_OPTS = [
-    { value: 'page',   label: 'Page' },
-    { value: 'layout', label: 'Layout' },
+  const TYPE_OPTS = [
+    { value: 'css', label: 'CSS' },
+    { value: 'js',  label: 'JavaScript' },
   ];
 
-  let templates  = $state([]);
+  let assets     = $state([]);
   let loading    = $state(true);
   let deleteItem = $state(null);
   let showCreate = $state(false);
 
   let newName    = $state('');
   let newSlug    = $state('');
-  let newType    = $state('page');
+  let newType    = $state('css');
   let creating   = $state(false);
   let slugEdited = false;
 
-  onMount(loadTemplates);
+  onMount(loadAssets);
 
-  async function loadTemplates() {
+  async function loadAssets() {
     loading = true;
     try {
-      const res = await api.get('templates');
-      templates = (res.data ?? []).filter(t => t.type !== 'partial');
+      const res = await api.get('assets');
+      assets = res.data ?? [];
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -47,14 +47,14 @@
     if (!newName.trim()) { notifications.error('Name is required'); return; }
     creating = true;
     try {
-      const res = await api.post('templates', {
+      const res = await api.post('assets', {
         name: newName.trim(),
         slug: newSlug || slugify(newName),
         type: newType,
-        source: '',
+        content: '',
       });
-      notifications.success('Template created');
-      goto(`/admin/templates/${res.data.id}`);
+      notifications.success('Asset created');
+      goto(`/admin/assets/${res.data.id}`);
     } catch (e) {
       notifications.error(e.message);
     } finally {
@@ -66,52 +66,55 @@
     const item = deleteItem;
     deleteItem = null;
     try {
-      await api.delete(`templates/${item.id}`);
-      templates = templates.filter(t => t.id !== item.id);
-      notifications.success('Template deleted');
+      await api.delete(`assets/${item.id}`);
+      assets = assets.filter(a => a.id !== item.id);
+      notifications.success('Asset deleted');
     } catch (e) {
       notifications.error(e.message);
     }
   }
 
   function typeColor(type) {
-    const map = { page: 'var(--sc-accent)', partial: 'var(--sc-info)', layout: 'var(--sc-success)' };
-    return map[type] ?? 'var(--sc-text-muted)';
+    return type === 'css' ? 'var(--sc-info)' : 'var(--sc-warning, #f59e0b)';
+  }
+
+  function resetModal() {
+    newName = ''; newSlug = ''; newType = 'css'; slugEdited = false;
   }
 </script>
 
-<AdminShell title="Templates">
+<AdminShell title="Assets">
   {#snippet actions()}
-    <button class="btn btn--primary" onclick={() => showCreate = true}>+ New Template</button>
+    <button class="btn btn--primary" onclick={() => { resetModal(); showCreate = true; }}>+ New Asset</button>
   {/snippet}
 
   {#snippet children()}
     {#if loading}
       <p class="muted">Loading…</p>
-    {:else if templates.length === 0}
+    {:else if assets.length === 0}
       <EmptyState
-        title="No templates yet"
-        message="Templates compile HTML with Liquid-style syntax and data-sc-* attributes."
-        action="New Template"
-        onaction={() => showCreate = true}
+        title="No assets yet"
+        message="Create CSS stylesheets and JavaScript files to include in your templates."
+        action="New Asset"
+        onaction={() => { resetModal(); showCreate = true; }}
       />
     {:else}
       <div class="table-wrap">
         <table class="table">
           <thead>
-            <tr><th>Name</th><th>Slug</th><th>Type</th><th>Updated</th><th></th></tr>
+            <tr><th>Name</th><th>File</th><th>Type</th><th>Updated</th><th></th></tr>
           </thead>
           <tbody>
-            {#each templates as t (t.id)}
+            {#each assets as a (a.id)}
               <tr>
-                <td><a href="/admin/templates/{t.id}" class="item-link">{t.name}</a></td>
-                <td class="muted-cell">{t.slug}</td>
+                <td><a href="/admin/assets/{a.id}" class="item-link">{a.name}</a></td>
+                <td class="muted-cell mono">{a.slug}.{a.type}</td>
                 <td>
-                  <span class="type-badge" style="color:{typeColor(t.type)};background:{typeColor(t.type)}18">{t.type}</span>
+                  <span class="type-badge" style="color:{typeColor(a.type)};background:{typeColor(a.type)}18">{a.type.toUpperCase()}</span>
                 </td>
-                <td class="muted-cell">{formatDate(t.updated_at)}</td>
+                <td class="muted-cell">{formatDate(a.updated_at)}</td>
                 <td class="actions-cell">
-                  <button class="btn-icon btn-icon--danger" onclick={() => deleteItem = t} title="Delete">
+                  <button class="btn-icon btn-icon--danger" onclick={() => deleteItem = a} title="Delete">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                       <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/>
                     </svg>
@@ -126,20 +129,21 @@
   {/snippet}
 </AdminShell>
 
-<Modal open={showCreate} title="New Template" onclose={() => showCreate = false}>
+<Modal open={showCreate} title="New Asset" onclose={() => showCreate = false}>
   {#snippet children()}
     <div class="form">
       <div class="field">
         <label class="label">Name <span class="req">*</span></label>
-        <input class="input" type="text" bind:value={newName} oninput={onNameInput} placeholder="e.g. Blog Post" />
+        <input class="input" type="text" bind:value={newName} oninput={onNameInput} placeholder="e.g. Main Styles" />
       </div>
       <div class="field">
-        <label class="label">Slug</label>
+        <label class="label">Filename</label>
         <input class="input" type="text" bind:value={newSlug} oninput={() => slugEdited = true} placeholder="auto-generated" />
+        <p class="hint">Will be saved as <strong>{newSlug || slugify(newName) || 'filename'}.{newType}</strong></p>
       </div>
       <div class="field">
         <label class="label">Type</label>
-        <Select bind:value={newType} options={TEMPLATE_TYPE_OPTS} />
+        <Select bind:value={newType} options={TYPE_OPTS} />
       </div>
     </div>
   {/snippet}
@@ -153,8 +157,8 @@
 
 <ConfirmDialog
   open={!!deleteItem}
-  title="Delete template"
-  message="Delete '{deleteItem?.name}'?"
+  title="Delete asset"
+  message="Delete '{deleteItem?.name}'? The file will be removed."
   confirmLabel="Delete"
   danger={true}
   onconfirm={confirmDelete}
@@ -173,6 +177,7 @@
   .item-link { color: var(--sc-text); font-weight: 500; }
   .item-link:hover { color: var(--sc-accent); }
   .muted-cell { color: var(--sc-text-muted); font-size: 12px; }
+  .mono { font-family: var(--sc-font-mono); }
   .type-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
   .actions-cell { text-align: right; width: 40px; }
   .btn-icon { background: none; border: none; color: var(--sc-text-muted); padding: 4px; cursor: pointer; border-radius: var(--sc-radius); display: inline-flex; }
@@ -181,6 +186,8 @@
   .field { display: flex; flex-direction: column; gap: 6px; }
   .label { font-size: 13px; font-weight: 600; color: var(--sc-text); }
   .req { color: var(--sc-danger); }
+  .hint { margin: 0; font-size: 12px; color: var(--sc-text-muted); }
+  .hint strong { color: var(--sc-text); }
   .input { padding: 8px 12px; background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); color: var(--sc-text); font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
   .input:focus { border-color: var(--sc-accent); }
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; }

@@ -111,12 +111,24 @@ if ($path !== '/' && file_exists($file) && is_file($file)) {
     return false; // let built-in server handle
 }
 
-// ── Root: test site welcome page ──────────────────────────────
-if ($path === '/' || $path === '') {
-    require $root . '/index.php';
+// ── Site assets: /assets/{file.css|js} ───────────────────────
+if (str_starts_with($path, '/assets/')) {
+    $filename = basename($path); // basename prevents path traversal
+    if (preg_match('/^[a-z0-9][a-z0-9\-]*\.(css|js)$/', $filename)) {
+        $file = $cms . '/storage/assets/' . $filename;
+        if (file_exists($file)) {
+            $mime = str_ends_with($filename, '.css') ? 'text/css' : 'application/javascript';
+            header("Content-Type: $mime; charset=utf-8");
+            header("Cache-Control: public, max-age=3600");
+            readfile($file);
+            exit;
+        }
+    }
+    http_response_code(404);
     exit;
 }
 
 // ── Front-end page routing → page renderer ───────────────────
+// Includes "/" which frontend.php maps to slug "home"
 chdir($cms);
 require $cms . '/frontend.php';

@@ -1,6 +1,6 @@
 {
   "name": "space-cadet-cms",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "scripts": {

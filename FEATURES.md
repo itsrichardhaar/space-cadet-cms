@@ -4,6 +4,31 @@ Maintained as features are built. Used for documentation generation.
 
 ---
 
+## Components Section (v0.1.5)
+
+- **Separate admin section** — Components live at `/admin/components`, distinct from Templates; sidebar entry with its own icon
+- **`type: partial` templates** — components are stored in the `templates` table as `type = 'partial'`; Templates list filters them out
+- **Full CodeMirror editor** — same HTML editing experience as Templates, with `$effect` + `$state` mounting and `untrack()` to prevent focus loss
+- **Include tag helper** — sidebar shows the exact `{% include "slug" %}` tag; all parent template context variables (`title`, `slug`, custom fields) are automatically available inside the component
+- **Create modal** — name + slug fields; `type: partial` is hardcoded so components never appear in Templates
+
+## Assets Section (v0.1.5)
+
+- **CSS and JS file manager** — create, edit, and delete `.css` and `.js` files from the admin
+- **`SiteAsset` model** — `storage/assets/` directory; files written on save and deleted on delete; served at `/assets/{slug}.{ext}`
+- **`AssetsController`** — `list`, `show`, `create`, `update`, `delete`; requires `developer` role
+- **CodeMirror editor** — switches between `css()` and `javascript()` language modes based on asset type
+- **Include snippet sidebar** — shows the `<link rel="stylesheet">` or `<script src>` tag to paste into templates
+- **Test-site router** — `/assets/{file}` route serves directly from `storage/assets/` with correct MIME type and 1-hour cache header
+
+## Custom Fields in Page Editor (v0.1.5)
+
+- **Field schema editor** — drag-reorderable list of field definitions (name, key, type); stored in `page_field_defs` table
+- **Field types** — text, textarea, richtext, number, checkbox, select, radio, date; each type has relevant options (placeholder, choices, etc.)
+- **Field content inputs** — `FieldRenderer` component shows editable inputs for each defined field; values stored in `page_fields` table
+- **Dirty tracking** — field defs and field values included in the unsaved-changes snapshot; UI-only props (`_uid`, `_open`) stripped before comparison
+- **SortableJS drag reorder** — uses `$effect` watching `$state`-bound list element for reliable initialization in conditional DOM
+
 ## Front-End Page Renderer (v0.1.3)
 
 - **`php/frontend.php`** — routes published pages to their public URLs; parses slug from `REQUEST_URI`, looks up page by slug, checks `status = published`

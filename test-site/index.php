@@ -1,12 +1,12 @@
 <?php
 /**
- * Space Cadet CMS — Test Site Root
+ * Space Cadet CMS — Root Entry Point
  * Redirects to the installer (first run) or admin panel.
  */
-require_once __DIR__ . '/space-cadet/config/app.php';
+require_once __DIR__ . '/config/app.php';
 
 if (!file_exists(SC_INSTALLED_LOCK)) {
-    header('Location: /space-cadet/install.php');
+    header('Location: /install.php');
 } else {
     header('Location: /admin.php');
 }

@@ -14,7 +14,9 @@
     Menus:        `<path d="M4 6h16M4 12h16M4 18h10"/>`,
     Forms:        `<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h6M7 13h10M7 17h4"/>`,
     Members:      `<circle cx="9" cy="8" r="3.5"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.6"/>`,
-    Templates:    `<path d="m16 18 5-5-5-5M8 6l-5 5 5 5M14 4l-4 16"/>`,
+    Templates:    `<rect x="3" y="3" width="18" height="5" rx="1"/><rect x="3" y="11" width="7" height="10" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/>`,
+    Assets:       `<path d="m16 18 5-5-5-5M8 6l-5 5 5 5M14 4l-4 16"/>`,
+    Components:   `<path d="M5 3h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M3 13h8a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"/><path d="M14 13h7a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"/>`,
     Webhooks:     `<path d="M12 3v9M12 21a4 4 0 1 0-4-4M16 17a4 4 0 1 0-3.5-6M8 17h8"/>`,
     Blueprint:    `<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>`,
     Search:       `<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>`,
@@ -35,6 +37,8 @@
 
   const NAV2 = [
     { label: 'Templates',   href: '/templates',    icon: 'Templates',   roles: ['developer'] },
+    { label: 'Components',  href: '/components',   icon: 'Components',  roles: ['developer'] },
+    { label: 'Assets',      href: '/assets',       icon: 'Assets',      roles: ['developer'] },
     { label: 'Webhooks',    href: '/webhooks',      icon: 'Webhooks',    roles: ['admin'] },
     { label: 'Blueprint AI', href: '/blueprint',     icon: 'Blueprint',   roles: ['editor'] },
     { label: 'Search',      href: '/search',        icon: 'Search',      roles: ['editor'] },
@@ -66,7 +70,7 @@
     <div class="sidebar__logo">SC</div>
     <div class="sidebar__brand-text">
       <span class="sidebar__brand-name">Space Cadet</span>
-      <span class="sidebar__brand-version">v0.1.0</span>
+      <span class="sidebar__brand-version">v0.1.4</span>
     </div>
   </div>
 
@@ -98,7 +102,7 @@
   </nav>
 
   <div class="sidebar__cpu-strip">
-    <span class="sidebar__cpu-version">v0.1.0</span>
+    <span class="sidebar__cpu-version">v0.1.4</span>
     <span class="sidebar__cpu-dot"></span>
   </div>
 

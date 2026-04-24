@@ -89,6 +89,16 @@ class Compiler {
             $out
         );
 
+        // {{{ raw variable }}} — no escape (must run BEFORE {{ }} to avoid partial match)
+        $out = preg_replace_callback(
+            '/\{\{\{\s*([^\}]+?)\s*\}\}\}/',
+            function ($m) {
+                $var = trim($m[1]);
+                return "<?php echo \$_ctx['{$var}'] ?? ''; ?>";
+            },
+            $out
+        );
+
         // {{ variable }} — auto-escape
         $out = preg_replace_callback(
             '/\{\{\s*([^\}]+?)\s*\}\}/',
@@ -108,16 +118,6 @@ class Compiler {
                 }
                 // Arbitrary expression — still escape output
                 return "<?php echo htmlspecialchars((string)({$expr}), ENT_QUOTES); ?>";
-            },
-            $out
-        );
-
-        // {{{ raw variable }}} — no escape
-        $out = preg_replace_callback(
-            '/\{\{\{\s*([^\}]+?)\s*\}\}\}/',
-            function ($m) {
-                $var = trim($m[1]);
-                return "<?php echo \$_ctx['{$var}'] ?? ''; ?>";
             },
             $out
         );

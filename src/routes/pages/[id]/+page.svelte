@@ -1,54 +1,85 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
+  import Sortable from 'sortablejs';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
   import FieldRenderer from '$lib/components/fields/FieldRenderer.svelte';
-  import StatusBadge from '$lib/components/common/StatusBadge.svelte';
   import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
   import { slugify } from '$lib/utils/slugify.js';
   import { formatDate } from '$lib/utils/formatDate.js';
+  import { FIELD_TYPES, defaultFieldOptions } from '$lib/utils/fieldTypes.js';
   import Select from '$lib/components/common/Select.svelte';
 
   const PAGE_STATUS_OPTS = [
-    { value: 'draft', label: 'Draft' },
+    { value: 'draft',     label: 'Draft' },
     { value: 'published', label: 'Published' },
-    { value: 'archived', label: 'Archived' },
+    { value: 'archived',  label: 'Archived' },
+  ];
+  const FIELD_TYPE_OPTS = FIELD_TYPES.map(t => ({ value: t.type, label: t.label }));
+  const CODE_LANG_OPTS = [
+    { value: 'html',       label: 'HTML' },
+    { value: 'css',        label: 'CSS' },
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'php',        label: 'PHP' },
   ];
 
-  let pageId   = $derived(parseInt($page.params.id));
+  let pageId = $derived(parseInt($page.params.id));
 
-  let loading      = $state(true);
-  let saving       = $state(false);
-  let duplicating  = $state(false);
-  let showDelete   = $state(false);
-  let notFound     = $state(false);
-  let allPages     = $state([]);
-  let templates    = $state([]);
+  let loading     = $state(true);
+  let saving      = $state(false);
+  let duplicating = $state(false);
+  let showDelete  = $state(false);
+  let notFound    = $state(false);
+  let allPages    = $state([]);
+  let templates   = $state([]);
 
   // Form state
-  let title        = $state('');
-  let slug         = $state('');
-  let parentId     = $state('');
-  let status       = $state('draft');
-  let publishedAt  = $state('');
-  let metaTitle    = $state('');
-  let metaDesc     = $state('');
-  let fields       = $state({});
-  let fieldDefs    = $state([]);
-  let createdAt    = $state(null);
-  let updatedAt    = $state(null);
+  let title       = $state('');
+  let slug        = $state('');
+  let parentId    = $state('');
+  let templateId  = $state('');
+  let status      = $state('draft');
+  let publishedAt = $state('');
+  let metaTitle   = $state('');
+  let metaDesc    = $state('');
+  let fields      = $state({});
+  let fieldDefs   = $state([]);
+  let createdAt   = $state(null);
+  let updatedAt   = $state(null);
 
-  let templateId   = $state('');
-  let slugEdited   = false;
+  let slugEdited = false;
+  let _uid = 0;
 
-  // Unsaved-changes tracking
+  // Sortable
+  let listEl  = $state();
+  let sortable;
+  $effect(() => {
+    if (!listEl) return;
+    sortable = Sortable.create(listEl, {
+      animation: 150,
+      handle: '.drag-handle',
+      onEnd(evt) {
+        const arr = [...fieldDefs];
+        const [item] = arr.splice(evt.oldIndex, 1);
+        arr.splice(evt.newIndex, 0, item);
+        fieldDefs = arr.map((f, i) => ({ ...f, sort_order: i }));
+      },
+    });
+    return () => sortable?.destroy();
+  });
+  onDestroy(() => sortable?.destroy());
+
+  // Unsaved-changes tracking — exclude UI-only _uid/_open from fieldDefs
+  function defsSnap(defs) {
+    return defs.map(({ name, key, type, options, required }) => ({ name, key, type, options, required }));
+  }
   let savedSnap = $state('');
   let isDirty = $derived(
     !loading && savedSnap !== '' &&
-    JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields }) !== savedSnap
+    JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields, fieldDefs: defsSnap(fieldDefs) }) !== savedSnap
   );
 
   beforeNavigate(({ cancel }) => {
@@ -77,12 +108,17 @@
       metaTitle   = p.meta_title ?? '';
       metaDesc    = p.meta_desc  ?? '';
       fields      = { ...(p.fields ?? {}) };
-      fieldDefs   = p.fieldDefs ?? [];
+      fieldDefs   = (p.fieldDefs ?? []).map(f => ({
+        ...f,
+        _uid: ++_uid,
+        _open: false,
+        options: typeof f.options === 'string' ? JSON.parse(f.options || '{}') : (f.options ?? {}),
+      }));
       createdAt   = p.created_at;
       updatedAt   = p.updated_at;
       allPages    = (pagesRes.data ?? []).filter(pp => pp.id !== pageId);
       templates   = tplRes.data ?? [];
-      savedSnap   = JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields });
+      savedSnap   = JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields, fieldDefs: defsSnap(fieldDefs) });
     } catch (e) {
       if (e.status === 404) notFound = true;
       else notifications.error(e.message);
@@ -97,6 +133,9 @@
 
   async function save() {
     if (!title.trim()) { notifications.error('Title is required'); return; }
+    for (const f of fieldDefs) {
+      if (!f.name.trim() || !f.key.trim()) { notifications.error('All fields must have a name and key.'); return; }
+    }
     saving = true;
     try {
       const body = {
@@ -105,14 +144,22 @@
         status,
         parent_id:   parentId   ? parseInt(parentId)   : null,
         template_id: templateId ? parseInt(templateId) : null,
-        meta_title: metaTitle || null,
-        meta_desc:  metaDesc  || null,
+        meta_title:  metaTitle || null,
+        meta_desc:   metaDesc  || null,
         published_at: (status === 'published' && publishedAt)
           ? Math.floor(new Date(publishedAt).getTime() / 1000) : null,
         fields,
+        fieldDefs: fieldDefs.map((f, i) => ({
+          name:       f.name.trim(),
+          key:        f.key.trim(),
+          type:       f.type,
+          options:    f.options ?? {},
+          required:   !!f.required,
+          sort_order: i,
+        })),
       };
       await api.put(`pages/${pageId}`, body);
-      savedSnap = JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields });
+      savedSnap = JSON.stringify({ title, slug, status, publishedAt, parentId, templateId, metaTitle, metaDesc, fields, fieldDefs: defsSnap(fieldDefs) });
       notifications.success('Page saved');
     } catch (e) {
       notifications.error(e.message);
@@ -138,12 +185,73 @@
     showDelete = false;
     try {
       await api.delete(`pages/${pageId}`);
-      savedSnap = ''; // clear dirty so beforeNavigate won't block
+      savedSnap = '';
       notifications.success('Page deleted');
       goto('/admin/pages');
     } catch (e) {
       notifications.error(e.message);
     }
+  }
+
+  // ── Field schema management ───────────────────────────────────────────────
+
+  function toKey(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  function addField() {
+    fieldDefs = [...fieldDefs, {
+      _uid: ++_uid,
+      _open: true,
+      name: '',
+      key: '',
+      type: 'text',
+      options: {},
+      required: false,
+      sort_order: fieldDefs.length,
+    }];
+    setTimeout(() => {
+      const rows = listEl?.querySelectorAll('.fd-row');
+      rows?.[rows.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+
+  function removeField(uid) {
+    const def = fieldDefs.find(f => f._uid === uid);
+    if (def?.key) {
+      const f = { ...fields };
+      delete f[def.key];
+      fields = f;
+    }
+    fieldDefs = fieldDefs.filter(f => f._uid !== uid);
+  }
+
+  function onFieldNameInput(f) {
+    if (!f._keyEdited) f.key = toKey(f.name);
+  }
+
+  function onTypeChange(f) {
+    f.options = defaultFieldOptions(f.type);
+    fieldDefs = [...fieldDefs]; // trigger reactivity
+  }
+
+  function addChoice(f) {
+    f.options = { ...f.options, choices: [...(f.options?.choices ?? []), ''] };
+    fieldDefs = [...fieldDefs];
+  }
+
+  function removeChoice(f, i) {
+    const c = [...(f.options?.choices ?? [])];
+    c.splice(i, 1);
+    f.options = { ...f.options, choices: c };
+    fieldDefs = [...fieldDefs];
+  }
+
+  function updateChoice(f, i, val) {
+    const c = [...(f.options?.choices ?? [])];
+    c[i] = val;
+    f.options = { ...f.options, choices: c };
+    fieldDefs = [...fieldDefs];
   }
 </script>
 
@@ -175,23 +283,110 @@
         <div class="layout">
           <!-- Main column -->
           <div class="main">
+
+            <!-- Content fields (fill in values) -->
             {#if fieldDefs.length > 0}
               <div class="card">
-                <h3 class="card-title">Content Fields</h3>
-                <div class="fields-list">
+                <h3 class="card-title">Content</h3>
+                <div class="content-fields">
                   {#each fieldDefs as fd (fd.key)}
                     <FieldRenderer fieldDef={fd} bind:value={fields[fd.key]} />
                   {/each}
                 </div>
               </div>
-            {:else}
-              <p class="muted">No custom fields defined for this page.</p>
             {/if}
+
+            <!-- Field schema editor (define fields) -->
+            <div class="card">
+              <h3 class="card-title">Custom Fields</h3>
+
+              {#if fieldDefs.length === 0}
+                <p class="fd-empty">No fields yet. Add fields to store structured content for this page — text, rich text, images, numbers, and more. Field keys become template variables.</p>
+              {/if}
+
+              <ul class="fd-list" bind:this={listEl}>
+                {#each fieldDefs as f (f._uid)}
+                  <li class="fd-row">
+                    <div class="fd-row-header">
+                      <button class="drag-handle" type="button" title="Drag to reorder">⠿</button>
+                      <span class="fd-type-badge">{f.type}</span>
+                      <div class="fd-meta">
+                        <input
+                          class="fd-name-input"
+                          type="text"
+                          bind:value={f.name}
+                          oninput={() => onFieldNameInput(f)}
+                          placeholder="Field name…"
+                        />
+                        <span class="fd-key-sep">→</span>
+                        <input
+                          class="fd-key-input"
+                          type="text"
+                          bind:value={f.key}
+                          oninput={() => f._keyEdited = true}
+                          placeholder="field_key"
+                        />
+                      </div>
+                      <Select bind:value={f.type} options={FIELD_TYPE_OPTS} onchange={() => onTypeChange(f)} />
+                      <label class="fd-req" title="Required">
+                        <input type="checkbox" bind:checked={f.required} />
+                        <span>Req</span>
+                      </label>
+                      <button class="fd-expand" type="button" onclick={() => f._open = !f._open}>{f._open ? '▴' : '▾'}</button>
+                      <button class="fd-del" type="button" onclick={() => removeField(f._uid)} title="Remove">✕</button>
+                    </div>
+
+                    {#if f._open}
+                      <div class="fd-options">
+                        {#if f.type === 'select' || f.type === 'checkbox'}
+                          <span class="fd-opt-label">Choices</span>
+                          {#each (f.options?.choices ?? []) as choice, ci}
+                            <div class="fd-choice-row">
+                              <input class="fd-choice-input" type="text" value={choice}
+                                oninput={(e) => updateChoice(f, ci, e.target.value)} placeholder="Option…" />
+                              <button class="fd-choice-del" type="button" onclick={() => removeChoice(f, ci)}>✕</button>
+                            </div>
+                          {/each}
+                          <button class="fd-add-choice" type="button" onclick={() => addChoice(f)}>+ Add choice</button>
+
+                        {:else if f.type === 'relation'}
+                          <div class="fd-opt-row">
+                            <label class="fd-opt-label">Collection slug</label>
+                            <input class="fd-opt-input" type="text" bind:value={f.options.collection} placeholder="collection-slug" />
+                          </div>
+                          <label class="fd-opt-label" style="flex-direction:row;gap:6px;align-items:center">
+                            <input type="checkbox" bind:checked={f.options.multiple} /> Allow multiple
+                          </label>
+
+                        {:else if f.type === 'number'}
+                          <div class="fd-opt-row">
+                            <label class="fd-opt-label">Min<input class="fd-opt-num" type="number" bind:value={f.options.min} /></label>
+                            <label class="fd-opt-label">Max<input class="fd-opt-num" type="number" bind:value={f.options.max} /></label>
+                            <label class="fd-opt-label">Step<input class="fd-opt-num" type="number" bind:value={f.options.step} /></label>
+                          </div>
+
+                        {:else if f.type === 'code'}
+                          <div class="fd-opt-row">
+                            <label class="fd-opt-label">Language</label>
+                            <Select bind:value={f.options.language} options={CODE_LANG_OPTS} />
+                          </div>
+
+                        {:else}
+                          <p class="fd-no-opts">No options for this field type.</p>
+                        {/if}
+                      </div>
+                    {/if}
+                  </li>
+                {/each}
+              </ul>
+
+              <button class="fd-add-btn" type="button" onclick={addField}>+ Add field</button>
+            </div>
+
           </div>
 
           <!-- Sidebar -->
           <aside class="sidebar">
-            <!-- Status card -->
             <div class="card">
               <h3 class="card-title">Status</h3>
               <Select bind:value={status} options={PAGE_STATUS_OPTS} />
@@ -201,7 +396,6 @@
               {/if}
             </div>
 
-            <!-- Template card -->
             <div class="card">
               <h3 class="card-title">Template</h3>
               <Select
@@ -213,7 +407,6 @@
               {/if}
             </div>
 
-            <!-- Identity card -->
             <div class="card">
               <h3 class="card-title">Identity</h3>
               <label class="label">Title</label>
@@ -226,7 +419,6 @@
               />
             </div>
 
-            <!-- SEO card -->
             <div class="card">
               <h3 class="card-title">SEO</h3>
               <label class="label">Meta title</label>
@@ -235,7 +427,6 @@
               <textarea class="input input--ta" bind:value={metaDesc} rows="3" placeholder="Brief description…"></textarea>
             </div>
 
-            <!-- Meta card -->
             {#if createdAt}
               <div class="card card--meta">
                 <p class="meta-row">Created: <span>{formatDate(createdAt)}</span></p>
@@ -268,7 +459,7 @@
   .card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 18px; }
   .card-title { margin: 0 0 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--sc-text-muted); }
   .card--meta { padding: 12px 18px; }
-  .fields-list { display: flex; flex-direction: column; gap: 18px; }
+  .content-fields { display: flex; flex-direction: column; gap: 18px; }
   .label { display: block; font-size: 12px; font-weight: 600; color: var(--sc-text-muted); margin-bottom: 4px; }
   .input { width: 100%; padding: 8px 12px; background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); color: var(--sc-text); font-size: 13px; outline: none; box-sizing: border-box; }
   .input:focus { border-color: var(--sc-accent); }
@@ -277,6 +468,45 @@
   .meta-row span { color: var(--sc-text); }
   .tpl-link { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--sc-accent); text-decoration: none; }
   .tpl-link:hover { text-decoration: underline; }
+
+  /* Field schema editor */
+  .fd-empty { font-size: 13px; color: var(--sc-text-muted); margin: 0 0 14px; line-height: 1.5; }
+  .fd-list { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
+  .fd-row { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); overflow: hidden; }
+  .fd-row-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+  .drag-handle { background: none; border: none; color: var(--sc-text-muted); cursor: grab; font-size: 16px; padding: 2px 4px; flex-shrink: 0; }
+  .drag-handle:active { cursor: grabbing; }
+  .fd-type-badge { font-size: 10px; font-weight: 700; background: rgba(var(--sc-accent-rgb),.12); color: var(--sc-accent); padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; flex-shrink: 0; }
+  .fd-meta { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .fd-name-input { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 5px 9px; color: var(--sc-text); font-size: 13px; width: 160px; outline: none; }
+  .fd-name-input:focus { border-color: var(--sc-accent); }
+  .fd-key-sep { color: var(--sc-text-muted); font-size: 12px; flex-shrink: 0; }
+  .fd-key-input { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 5px 9px; color: var(--sc-text-muted); font-size: 11px; font-family: var(--sc-font-mono); width: 120px; outline: none; }
+  .fd-key-input:focus { border-color: var(--sc-accent); color: var(--sc-text); }
+  .fd-req { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sc-text-muted); cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .fd-req input { accent-color: var(--sc-accent); }
+  .fd-expand { background: none; border: none; color: var(--sc-text-muted); cursor: pointer; font-size: 13px; padding: 2px 6px; }
+  .fd-expand:hover { color: var(--sc-text); }
+  .fd-del { background: none; border: none; color: var(--sc-text-muted); cursor: pointer; font-size: 13px; padding: 2px 6px; margin-left: auto; flex-shrink: 0; }
+  .fd-del:hover { color: var(--sc-danger); }
+  .fd-options { padding: 12px 14px; border-top: 1px solid var(--sc-border); background: var(--sc-surface); display: flex; flex-direction: column; gap: 8px; }
+  .fd-opt-label { font-size: 11px; font-weight: 600; color: var(--sc-text-muted); text-transform: uppercase; letter-spacing: .04em; display: flex; flex-direction: column; gap: 4px; }
+  .fd-opt-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .fd-opt-input { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 5px 9px; color: var(--sc-text); font-size: 13px; width: 200px; outline: none; }
+  .fd-opt-input:focus { border-color: var(--sc-accent); }
+  .fd-opt-num { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 5px 9px; color: var(--sc-text); font-size: 13px; width: 70px; outline: none; margin-top: 4px; }
+  .fd-opt-num:focus { border-color: var(--sc-accent); }
+  .fd-choice-row { display: flex; align-items: center; gap: 6px; }
+  .fd-choice-input { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 5px 9px; color: var(--sc-text); font-size: 13px; flex: 1; outline: none; }
+  .fd-choice-input:focus { border-color: var(--sc-accent); }
+  .fd-choice-del { background: none; border: none; color: var(--sc-text-muted); cursor: pointer; font-size: 13px; padding: 2px 6px; }
+  .fd-choice-del:hover { color: var(--sc-danger); }
+  .fd-add-choice { background: none; border: 1px dashed var(--sc-border); border-radius: var(--sc-radius); padding: 4px 10px; color: var(--sc-text-muted); font-size: 12px; cursor: pointer; align-self: flex-start; }
+  .fd-add-choice:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .fd-no-opts { font-size: 12px; color: var(--sc-text-muted); margin: 0; }
+  .fd-add-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 10px; border: 2px dashed var(--sc-border); border-radius: var(--sc-radius); background: none; color: var(--sc-text-muted); font-size: 13px; cursor: pointer; }
+  .fd-add-btn:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
   .btn { padding: 8px 16px; border-radius: var(--sc-radius); font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
   .btn--primary { background: var(--sc-accent); color: #fff; }
   .btn--primary:hover:not(:disabled) { background: var(--sc-accent-hover); }

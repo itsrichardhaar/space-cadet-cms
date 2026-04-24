@@ -183,6 +183,13 @@ class Router {
             'webhooks/{id}/test:POST'        => [WebhooksController::class,       'test',               [0]],
             'webhooks/{id}/deliveries:GET'   => [WebhooksController::class,       'deliveries',         [0]],
 
+            // ── Assets (CSS / JS) ────────────────────────────────────────
+            'assets:GET'                     => [AssetsController::class,         'list',               []],
+            'assets:POST'                    => [AssetsController::class,         'create',             []],
+            'assets/{id}:GET'                => [AssetsController::class,         'show',               [0]],
+            'assets/{id}:PUT'                => [AssetsController::class,         'update',             [0]],
+            'assets/{id}:DELETE'             => [AssetsController::class,         'delete',             [0]],
+
             // ── Templates ────────────────────────────────────────────────
             'templates:GET'                  => [TemplatesController::class,      'list',               []],
             'templates:POST'                 => [TemplatesController::class,      'create',             []],
