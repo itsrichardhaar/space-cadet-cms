@@ -107,13 +107,24 @@
       publishedAt = p.published_at ? new Date(p.published_at * 1000).toISOString().slice(0,16) : '';
       metaTitle   = p.meta_title ?? '';
       metaDesc    = p.meta_desc  ?? '';
-      fields      = { ...(p.fields ?? {}) };
+      const rawFields = p.fields ?? {};
+      fields      = { ...rawFields };
       fieldDefs   = (p.fieldDefs ?? []).map(f => ({
         ...f,
         _uid: ++_uid,
         _open: false,
-        options: typeof f.options === 'string' ? JSON.parse(f.options || '{}') : (f.options ?? {}),
+        required: !!f.required,
+        options: (() => { const o = typeof f.options === 'string' ? JSON.parse(f.options || '{}') : (f.options ?? {}); return Array.isArray(o) ? {} : o; })(),
       }));
+      // Pre-initialise field values so FieldRenderer's $bindable defaults don't write back
+      // after savedSnap is taken and cause a false isDirty on page load.
+      for (const fd of fieldDefs) {
+        if (fd.key && !(fd.key in rawFields)) {
+          if (fd.type === 'toggle')        fields[fd.key] = false;
+          else if (fd.type === 'checkbox') fields[fd.key] = [];
+          else                             fields[fd.key] = null;
+        }
+      }
       createdAt   = p.created_at;
       updatedAt   = p.updated_at;
       allPages    = (pagesRes.data ?? []).filter(pp => pp.id !== pageId);
@@ -133,9 +144,20 @@
 
   async function save() {
     if (!title.trim()) { notifications.error('Title is required'); return; }
-    for (const f of fieldDefs) {
-      if (!f.name.trim() || !f.key.trim()) { notifications.error('All fields must have a name and key.'); return; }
+    // Silently discard rows where neither name nor key has been filled in (user added but didn't define)
+    const activeDefs = fieldDefs.filter(f => (f.name ?? '').trim() || (f.key ?? '').trim());
+    // Validate any partially-filled row
+    const badField = activeDefs.find(f => !(f.name ?? '').trim() || !(f.key ?? '').trim());
+    if (badField) {
+      badField._open = true;
+      notifications.error('Fill in the name and key for the highlighted field.');
+      setTimeout(() => {
+        const idx = fieldDefs.findIndex(f => f._uid === badField._uid);
+        listEl?.querySelectorAll('.fd-row')?.[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return;
     }
+    if (activeDefs.length < fieldDefs.length) fieldDefs = activeDefs;
     saving = true;
     try {
       const body = {
@@ -212,8 +234,10 @@
     }];
     setTimeout(() => {
       const rows = listEl?.querySelectorAll('.fd-row');
-      rows?.[rows.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 50);
+      const last = rows?.[rows.length - 1];
+      last?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      last?.querySelector('.fd-name-input')?.focus();
+    }, 60);
   }
 
   function removeField(uid) {
@@ -285,11 +309,11 @@
           <div class="main">
 
             <!-- Content fields (fill in values) -->
-            {#if fieldDefs.length > 0}
+            {#if fieldDefs.some(fd => fd.key)}
               <div class="card">
                 <h3 class="card-title">Content</h3>
                 <div class="content-fields">
-                  {#each fieldDefs as fd (fd.key)}
+                  {#each fieldDefs.filter(fd => fd.key) as fd (fd._uid)}
                     <FieldRenderer fieldDef={fd} bind:value={fields[fd.key]} />
                   {/each}
                 </div>

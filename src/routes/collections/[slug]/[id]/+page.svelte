@@ -79,8 +79,18 @@
       itemSlug    = item.slug  ?? '';
       status      = item.status ?? 'draft';
       publishedAt = item.published_at ?? null;
-      fields      = { ...(item.fields ?? {}) };
+      const rawFields = item.fields ?? {};
+      fields      = { ...rawFields };
       labelIds    = (item.labels ?? []).map(l => l.id);
+
+      // Pre-initialise $bindable defaults to prevent false isDirty on mount
+      for (const fd of (collection?.fields ?? [])) {
+        if (fd.key && !(fd.key in rawFields)) {
+          if (fd.type === 'toggle')        fields[fd.key] = false;
+          else if (fd.type === 'checkbox') fields[fd.key] = [];
+          else                             fields[fd.key] = null;
+        }
+      }
 
       savedSnap = JSON.stringify({ title, itemSlug, status, publishedAt, fields, labelIds });
     } catch (e) {

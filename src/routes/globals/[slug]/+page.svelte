@@ -35,7 +35,16 @@
       if (!g) { notFound = true; return; }
       const res = await api.get(`globals/${g.id}`);
       group  = res.data;
-      values = { ...(res.data.values ?? {}) };
+      const rawValues = res.data.values ?? {};
+      values = { ...rawValues };
+      // Pre-initialise $bindable defaults to prevent false isDirty on mount
+      for (const fd of (group.fields ?? [])) {
+        if (fd.key && !(fd.key in rawValues)) {
+          if (fd.type === 'toggle')        values[fd.key] = false;
+          else if (fd.type === 'checkbox') values[fd.key] = [];
+          else                             values[fd.key] = null;
+        }
+      }
       savedSnap = JSON.stringify(values);
     } catch (e) {
       if (e.status === 404) notFound = true;
