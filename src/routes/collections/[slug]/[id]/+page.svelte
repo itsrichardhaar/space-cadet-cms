@@ -39,6 +39,39 @@
 
   let slugEdited = false;
 
+  // Revision history
+  let showRevisions    = $state(false);
+  let revisions        = $state(null);   // null = not loaded
+  let loadingRevisions = $state(false);
+  let restoreRevId     = $state(null);   // pending confirm
+  let restoring        = $state(false);
+
+  async function loadRevisions() {
+    if (!item) return;
+    loadingRevisions = true;
+    try {
+      const res = await api.get('revisions', { entity_type: 'collection_item', entity_id: item.id });
+      revisions = res.data ?? [];
+    } catch { revisions = []; }
+    finally { loadingRevisions = false; }
+  }
+
+  async function restoreRevision() {
+    const revId = restoreRevId;
+    restoreRevId = null;
+    restoring = true;
+    try {
+      await api.post(`revisions/${revId}/restore`);
+      notifications.success('Revision restored');
+      savedSnap = ''; // prevent dirty guard
+      await load();
+    } catch (e) {
+      notifications.error(e.message);
+    } finally {
+      restoring = false;
+    }
+  }
+
   // Unsaved-changes tracking
   let savedSnap = $state('');
   let isDirty = $derived(
@@ -264,6 +297,40 @@
             <div class="meta-row"><span>Author</span><span>{item.author_name}</span></div>
           {/if}
         </div>
+
+        <!-- Revision history -->
+        <div class="side-card">
+          <button
+            class="side-card-head side-card-head--toggle"
+            onclick={() => { showRevisions = !showRevisions; if (showRevisions && revisions === null) loadRevisions(); }}
+          >
+            <span>History</span>
+            <span class="toggle-chevron">{showRevisions ? '▴' : '▾'}</span>
+          </button>
+          {#if showRevisions}
+            <div class="side-card-body rev-body">
+              {#if loadingRevisions}
+                <p class="rev-hint">Loading…</p>
+              {:else if !revisions?.length}
+                <p class="rev-hint">No history yet. Save to create a revision.</p>
+              {:else}
+                {#each revisions as rev}
+                  <div class="rev-row">
+                    <div class="rev-info">
+                      <span class="rev-time">{formatDate(rev.created_at, 'relative')}</span>
+                      {#if rev.user_name}<span class="rev-user">{rev.user_name}</span>{/if}
+                    </div>
+                    <button
+                      class="rev-restore-btn"
+                      onclick={() => restoreRevId = rev.id}
+                      disabled={restoring}
+                    >Restore</button>
+                  </div>
+                {/each}
+              {/if}
+            </div>
+          {/if}
+        </div>
       </aside>
     </div>
   {/if}
@@ -277,6 +344,16 @@
   danger={true}
   onconfirm={confirmDelete}
   oncancel={() => showDelete = false}
+/>
+
+<ConfirmDialog
+  open={!!restoreRevId}
+  title="Restore this revision?"
+  message="This will overwrite the current content with the selected version. A new revision will be saved first so you can undo."
+  confirmLabel="Restore"
+  danger={false}
+  onconfirm={restoreRevision}
+  oncancel={() => restoreRevId = null}
 />
 
 <style>
@@ -295,7 +372,20 @@
 
   .side-card { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); overflow: hidden; }
   .side-card-head { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sc-text-muted); border-bottom: 1px solid var(--sc-border); }
+  .side-card-head--toggle { width: 100%; background: none; border: none; border-bottom: 1px solid var(--sc-border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sc-text-muted); }
+  .side-card-head--toggle:hover { color: var(--sc-text); }
+  .toggle-chevron { font-size: 9px; }
   .side-card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .rev-body { padding: 8px 0; gap: 0; }
+  .rev-hint { padding: 8px 14px; font-size: 12px; color: var(--sc-text-muted); margin: 0; }
+  .rev-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; border-bottom: 1px solid var(--sc-border); }
+  .rev-row:last-child { border-bottom: none; }
+  .rev-info { display: flex; flex-direction: column; gap: 2px; }
+  .rev-time { font-size: 12px; color: var(--sc-text); }
+  .rev-user { font-size: 11px; color: var(--sc-text-muted); }
+  .rev-restore-btn { background: none; border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 3px 8px; font-size: 11px; color: var(--sc-text-muted); cursor: pointer; }
+  .rev-restore-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .rev-restore-btn:disabled { opacity: .4; cursor: default; }
 
   .input { background: var(--sc-surface-2); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: 7px 10px; color: var(--sc-text); font-size: 13.5px; width: 100%; }
   .input:focus { outline: none; border-color: var(--sc-accent); }

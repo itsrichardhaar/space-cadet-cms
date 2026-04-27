@@ -243,6 +243,18 @@ class Router {
             // ── Audit log ────────────────────────────────────────────────
             'audit-log:GET'                  => [SettingsController::class,       'auditLog',           []],
 
+            // ── Revisions ────────────────────────────────────────────────
+            'revisions:GET'                  => [RevisionsController::class,      'list',               []],
+            'revisions/{id}/restore:POST'    => [RevisionsController::class,      'restore',            [0]],
+
+            // ── Backup ────────────────────────────────────────────────────
+            'backup/download:GET'            => [BackupController::class,         'download',           []],
+            'backup/restore:POST'            => [BackupController::class,         'restore',            []],
+            'backup/confirm:POST'            => [BackupController::class,         'confirm',            []],
+
+            // ── Feeds (RSS 2.0) ───────────────────────────────────────────
+            'feeds/{id}:GET'                 => [FeedController::class,           'collection',         [0]],
+
             // ── Content API (Public, read-only) ──────────────────────────
             'content/collections:GET'        => [CollectionsController::class,    'publicList',         []],
             'content/collections/{id}:GET'   => [CollectionsController::class,    'publicShow',         [0]],

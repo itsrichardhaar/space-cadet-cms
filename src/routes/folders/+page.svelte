@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import AdminShell from '$lib/components/layout/AdminShell.svelte';
+  import EmptyState from '$lib/components/common/EmptyState.svelte';
   import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
   import { api } from '$lib/api.js';
   import { notifications } from '$lib/stores/notifications.svelte.js';
@@ -114,7 +115,7 @@
     {#if loading}
       <p class="muted">Loading…</p>
     {:else if folders.length === 0}
-      <p class="muted">No folders yet. Create one above.</p>
+      <EmptyState icon="⊟" title="No folders yet" message="Folders let you organize collection items into groups. Create one above." />
     {:else}
       <div class="list">
         {#each tree(folders) as f (f.id)}

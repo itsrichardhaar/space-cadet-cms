@@ -128,6 +128,14 @@ if (str_starts_with($path, '/assets/')) {
     exit;
 }
 
+// ── RSS Feeds: /feed/{id} → feeds/{id} API action ────────────
+if (preg_match('#^/feed/(\d+)(?:\.xml)?$#', $path, $m)) {
+    $_GET['action'] = 'feeds/' . $m[1];
+    chdir($cms);
+    require $cms . '/api.php';
+    exit;
+}
+
 // ── Front-end page routing → page renderer ───────────────────
 // Includes "/" which frontend.php maps to slug "home"
 chdir($cms);

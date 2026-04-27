@@ -22,6 +22,7 @@
     Search:       `<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>`,
     ApiKeys:      `<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>`,
     Settings:     `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,
+    Backup:       `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,
   };
 
   const NAV = [
@@ -43,6 +44,7 @@
     { label: 'Blueprint AI', href: '/blueprint',     icon: 'Blueprint',   roles: ['editor'] },
     { label: 'Search',      href: '/search',        icon: 'Search',      roles: ['editor'] },
     { label: 'API Keys',    href: '/api-keys',      icon: 'ApiKeys',     roles: ['admin'] },
+    { label: 'Backup',      href: '/settings/backup', icon: 'Backup',    roles: ['admin'] },
     { label: 'Settings',    href: '/settings',      icon: 'Settings',    roles: ['admin'] },
   ];
 
@@ -70,7 +72,7 @@
     <div class="sidebar__logo">SC</div>
     <div class="sidebar__brand-text">
       <span class="sidebar__brand-name">Space Cadet</span>
-      <span class="sidebar__brand-version">v0.1.4</span>
+      <span class="sidebar__brand-version">v0.1.5</span>
     </div>
   </div>
 
@@ -102,7 +104,7 @@
   </nav>
 
   <div class="sidebar__cpu-strip">
-    <span class="sidebar__cpu-version">v0.1.4</span>
+    <span class="sidebar__cpu-version">v0.1.5</span>
     <span class="sidebar__cpu-dot"></span>
   </div>
 

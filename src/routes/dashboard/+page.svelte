@@ -6,11 +6,32 @@
   import { onMount } from 'svelte';
   import { formatDate } from '$lib/utils/formatDate.js';
 
-  let collections = $state([]);
-  let stats       = $state(null);
-  let loading     = $state(true);
+  let collections   = $state([]);
+  let stats         = $state(null);
+  let loading       = $state(true);
+  let setupDismissed = $state(true); // default true to avoid flash
+
+  // Setup checklist derived from stats
+  let setupDone = $derived(
+    !loading &&
+    (stats?.collections ?? 0) > 0 &&
+    (stats?.pages ?? 0) > 0
+  );
+
+  // Show the banner if: not dismissed, not all done, and we have stats
+  let showSetup = $derived(
+    !loading && !setupDismissed && !(setupDone)
+  );
+
+  function dismissSetup() {
+    setupDismissed = true;
+    try { localStorage.setItem('sc_setup_dismissed', '1'); } catch {}
+  }
 
   onMount(async () => {
+    // Check dismiss state first (avoids flash)
+    try { setupDismissed = localStorage.getItem('sc_setup_dismissed') === '1'; } catch {}
+
     try {
       const [statsRes, colRes] = await Promise.all([
         api.get('stats'),
@@ -32,6 +53,41 @@
       <h2>Welcome back, {userStore.current?.displayName}</h2>
       <p>Here's what's happening in your CMS.</p>
     </div>
+
+    <!-- Setup wizard banner: shown on fresh installs -->
+    {#if showSetup}
+      <div class="setup-banner">
+        <div class="setup-banner__header">
+          <div class="setup-banner__icon">🚀</div>
+          <div>
+            <div class="setup-banner__title">Get started with Space Cadet</div>
+            <div class="setup-banner__sub">A few quick steps to have your CMS ready.</div>
+          </div>
+          <button class="setup-banner__dismiss" onclick={dismissSetup} title="Dismiss">✕</button>
+        </div>
+        <div class="setup-checklist">
+          <a href="/admin/collections" class="setup-step" class:done={(stats?.collections ?? 0) > 0}>
+            <span class="setup-step__check">{(stats?.collections ?? 0) > 0 ? '✓' : '○'}</span>
+            <span class="setup-step__label">Create your first collection</span>
+            {#if (stats?.collections ?? 0) === 0}
+              <span class="setup-step__cta">→</span>
+            {/if}
+          </a>
+          <a href="/admin/pages" class="setup-step" class:done={(stats?.pages ?? 0) > 0}>
+            <span class="setup-step__check">{(stats?.pages ?? 0) > 0 ? '✓' : '○'}</span>
+            <span class="setup-step__label">Create your first page</span>
+            {#if (stats?.pages ?? 0) === 0}
+              <span class="setup-step__cta">→</span>
+            {/if}
+          </a>
+          <a href="/admin/settings" class="setup-step">
+            <span class="setup-step__check">○</span>
+            <span class="setup-step__label">Configure site URL in Settings</span>
+            <span class="setup-step__cta">→</span>
+          </a>
+        </div>
+      </div>
+    {/if}
 
     <div class="stats-grid">
       {#if loading}
@@ -92,6 +148,24 @@
   .welcome { margin-bottom: 28px; }
   .welcome h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
   .welcome p  { margin: 0; color: var(--sc-text-muted); }
+
+  /* Setup banner */
+  .setup-banner { background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 20px 24px; margin-bottom: 28px; }
+  .setup-banner__header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+  .setup-banner__icon { font-size: 24px; flex-shrink: 0; }
+  .setup-banner__title { font-size: 15px; font-weight: 700; color: var(--sc-text); margin-bottom: 3px; }
+  .setup-banner__sub { font-size: 13px; color: var(--sc-text-muted); }
+  .setup-banner__dismiss { margin-left: auto; background: none; border: none; color: var(--sc-text-muted); cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: var(--sc-radius); flex-shrink: 0; }
+  .setup-banner__dismiss:hover { color: var(--sc-text); background: var(--sc-surface-2); }
+
+  .setup-checklist { display: flex; flex-direction: column; gap: 8px; }
+  .setup-step { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--sc-border); border-radius: var(--sc-radius); text-decoration: none; color: var(--sc-text); transition: border-color .12s, background .12s; }
+  .setup-step:hover { border-color: var(--sc-accent); background: rgba(var(--sc-accent-rgb), .03); }
+  .setup-step.done { opacity: .5; }
+  .setup-step__check { font-size: 14px; color: var(--sc-accent); flex-shrink: 0; width: 18px; text-align: center; }
+  .setup-step.done .setup-step__check { color: var(--sc-success); }
+  .setup-step__label { flex: 1; font-size: 13px; font-weight: 500; }
+  .setup-step__cta { font-size: 13px; color: var(--sc-text-muted); }
 
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
 

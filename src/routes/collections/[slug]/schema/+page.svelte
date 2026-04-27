@@ -18,11 +18,12 @@
   import Sortable from 'sortablejs';
 
   let slug       = $derived($page.params.slug);
-  let collection = $state(null);
-  let fields     = $state([]);
-  let loading    = $state(true);
-  let saving     = $state(false);
-  let notFound   = $state(false);
+  let collection  = $state(null);
+  let fields      = $state([]);
+  let feedEnabled = $state(false);
+  let loading     = $state(true);
+  let saving      = $state(false);
+  let notFound    = $state(false);
 
   let listEl = $state(null);
   let sortable;
@@ -41,7 +42,8 @@
       const c = (allRes.data ?? []).find(c => c.slug === slug);
       if (!c) { notFound = true; return; }
       const res = await api.get(`collections/${c.id}`);
-      collection = res.data;
+      collection  = res.data;
+      feedEnabled = !!(res.data.feed_enabled);
       fields = (res.data.fields ?? []).map(f => ({ ...f, _uid: ++_uid, _open: false }));
     } catch (e) {
       notifications.error(e.message);
@@ -107,16 +109,19 @@
     }
     saving = true;
     try {
-      await api.put(`collections/${collection.id}/fields`, {
-        fields: fields.map((f, i) => ({
-          name:       f.name.trim(),
-          key:        f.key.trim(),
-          type:       f.type,
-          options:    f.options ?? {},
-          required:   !!f.required,
-          sort_order: i,
-        })),
-      });
+      await Promise.all([
+        api.put(`collections/${collection.id}/fields`, {
+          fields: fields.map((f, i) => ({
+            name:       f.name.trim(),
+            key:        f.key.trim(),
+            type:       f.type,
+            options:    f.options ?? {},
+            required:   !!f.required,
+            sort_order: i,
+          })),
+        }),
+        api.put(`collections/${collection.id}`, { feed_enabled: feedEnabled ? 1 : 0 }),
+      ]);
       notifications.success('Schema saved.');
     } catch (e) {
       notifications.error(e.message);
@@ -259,6 +264,17 @@
       <button class="add-field-btn" type="button" onclick={addField}>
         + Add field
       </button>
+
+      <div class="settings-card">
+        <div class="settings-card-title">Feed Settings</div>
+        <label class="settings-toggle">
+          <input type="checkbox" bind:checked={feedEnabled} />
+          <span class="settings-toggle-label">Enable RSS feed</span>
+          <span class="settings-toggle-hint">
+            Publishes items at <code>/feed/{collection.id}.xml</code>
+          </span>
+        </label>
+      </div>
     </div>
   {/if}
 </AdminShell>
@@ -325,6 +341,14 @@
 
   .add-field-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 12px; border: 2px dashed var(--sc-border); border-radius: var(--sc-radius-lg); background: none; color: var(--sc-text-muted); font-size: 14px; cursor: pointer; transition: border-color .15s, color .15s; }
   .add-field-btn:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
+  .settings-card { margin-top: 24px; background: var(--sc-surface); border: 1px solid var(--sc-border); border-radius: var(--sc-radius-lg); padding: 18px; }
+  .settings-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sc-text-muted); margin-bottom: 14px; }
+  .settings-toggle { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .settings-toggle input { margin-top: 2px; accent-color: var(--sc-accent); flex-shrink: 0; }
+  .settings-toggle-label { font-size: 13px; font-weight: 600; color: var(--sc-text); }
+  .settings-toggle-hint { font-size: 12px; color: var(--sc-text-muted); margin-left: auto; }
+  .settings-toggle-hint code { background: var(--sc-surface-2); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
 
   .btn-primary { display: inline-flex; align-items: center; padding: 8px 18px; background: var(--sc-accent); color: #fff; border-radius: var(--sc-radius); font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary:hover:not(:disabled) { background: var(--sc-accent-hover); }

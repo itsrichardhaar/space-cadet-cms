@@ -20,6 +20,7 @@ class PagesController {
         Auth::requireRole('editor'); Page::findById($id)??Response::notFound();
         $body=$req->json()??[]; Page::update($id,$body);
         $p=Page::findById($id); SearchIndex::index('page',$id,$p['title'],'');
+        Revision::snapshot('page',$id,Auth::userId());
         EventEmitter::emit('page.updated',['id'=>$id]);
         AuditLog::write(Auth::userId(),'updated','page',$id,array_intersect_key($body,array_flip(['title','slug','status','meta_title','meta_desc'])));
         Response::success($p);

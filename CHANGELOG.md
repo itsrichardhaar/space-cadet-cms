@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] — 2026-04-27
+
+### Added
+- Revision history — automatic snapshots on every page and collection item save; collapsible "History" panel in editor sidebar with lazy load; one-click restore with confirmation dialog; keeps last 50 revisions per entity; `revisions` table with `entity_type`, `entity_id`, `snapshot` (JSON), and `user_id`
+- Backup & restore — download a full SQLite backup via Settings › Backup; upload a `.sqlite` file to stage it (validated with magic bytes); confirm dialog to apply; current database auto-saved as `.bak` before overwrite; WAL checkpoint ensures complete backup
+- RSS feeds — per-collection `feed_enabled` toggle in schema editor settings card; RSS 2.0 XML endpoint at `/feed/{id}`; public URL shown in schema UI when enabled; test-site router handles `/feed/{id}(.xml)?` paths
+- Empty states — `EmptyState` component updated to accept both `message`/`onaction` string pattern and `description`/snippet `action` pattern; applied to labels and folders list pages
+- Error boundary — new `ErrorBoundary.svelte` component; accepts optional `fallback` snippet with `{ error, reset }` props for custom error UIs
+- Setup wizard banner — first-run checklist on the dashboard (create a collection, create a page, configure site URL); reads completion state from live stats; dismissible via localStorage `sc_setup_dismissed` flag; auto-hides when all steps are done
+
+### Changed
+- Sidebar updated — Backup nav item added under Settings with download icon; version badge bumped to v0.2.0
+
+---
+
 ## [0.1.5] — 2026-04-24
 
 ### Added

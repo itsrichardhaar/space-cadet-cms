@@ -39,6 +39,7 @@ require_once __DIR__ . '/models/Template.php';
 require_once __DIR__ . '/models/SiteAsset.php';
 require_once __DIR__ . '/models/SearchIndex.php';
 require_once __DIR__ . '/models/AuditLog.php';
+require_once __DIR__ . '/models/Revision.php';
 
 // Controllers
 require_once __DIR__ . '/controllers/AuthController.php';
@@ -61,10 +62,33 @@ require_once __DIR__ . '/controllers/BlueprintController.php';
 require_once __DIR__ . '/controllers/MembersController.php';
 require_once __DIR__ . '/controllers/AssetsController.php';
 require_once __DIR__ . '/controllers/SettingsController.php';
+require_once __DIR__ . '/controllers/RevisionsController.php';
+require_once __DIR__ . '/controllers/BackupController.php';
+require_once __DIR__ . '/controllers/FeedController.php';
 
 // One-time migration: rename forge_jobs → blueprint_jobs (Blueprint AI rename)
 if (Database::queryOne("SELECT name FROM sqlite_master WHERE type='table' AND name='forge_jobs'")) {
     Database::execute("ALTER TABLE forge_jobs RENAME TO blueprint_jobs");
+}
+
+// Migration: revisions table
+Database::execute("
+    CREATE TABLE IF NOT EXISTS revisions (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type   TEXT    NOT NULL CHECK(entity_type IN ('page','collection_item')),
+        entity_id     INTEGER NOT NULL,
+        user_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        action        TEXT    NOT NULL DEFAULT 'updated',
+        snapshot_json TEXT    NOT NULL,
+        created_at    INTEGER NOT NULL DEFAULT (unixepoch())
+    )
+");
+Database::execute("CREATE INDEX IF NOT EXISTS idx_revisions_entity ON revisions(entity_type, entity_id, created_at DESC)");
+
+// Migration: collections.feed_enabled column
+$collCols = array_column(Database::query("PRAGMA table_info(collections)"), 'name');
+if (!in_array('feed_enabled', $collCols)) {
+    Database::execute("ALTER TABLE collections ADD COLUMN feed_enabled INTEGER NOT NULL DEFAULT 0");
 }
 
 // Determine if this is a public content API request

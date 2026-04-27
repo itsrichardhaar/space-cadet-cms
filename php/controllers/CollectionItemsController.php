@@ -38,6 +38,7 @@ class CollectionItemsController {
         CollectionItem::update($itemId,$body);
         $updated=CollectionItem::findById($itemId);
         SearchIndex::index('collection_item',$itemId,$updated['title'],implode(' ',array_map('strval',$updated['fields']??[])));
+        Revision::snapshot('collection_item',$itemId,Auth::userId());
         EventEmitter::emit('item.updated',['collection_id'=>$collectionId,'item_id'=>$itemId,'status'=>$body['status']??$item['status']]);
         AuditLog::write(Auth::userId(),'updated','collection_item',$itemId,array_intersect_key($body,array_flip(['title','status','slug','fields'])));
         Response::success($updated);

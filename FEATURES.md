@@ -4,6 +4,44 @@ Maintained as features are built. Used for documentation generation.
 
 ---
 
+## Revision History (v0.2.0)
+
+- **Automatic snapshots** — every `update()` in `PagesController` and `CollectionItemsController` calls `Revision::snapshot()` before writing; full entity JSON stored in the `revisions` table
+- **`Revision` model** — `snapshot()`, `listForEntity()`, `findById()`, `restore()`; trims to last 50 per entity using a single `DELETE ... WHERE id NOT IN (...)` query
+- **`RevisionsController`** — `list` (GET, requires `entity_type` + `entity_id` params) and `restore/{id}` (POST, creates a new snapshot of the pre-restore state before replacing)
+- **Editor sidebar panel** — collapsible "History" card in collection item and page editors; lazy-loads on first open; shows relative timestamps with author initials; restore button per row
+- **Restore confirmation** — `ConfirmDialog` before any restore; reloads editor after success
+
+## Backup & Restore (v0.2.0)
+
+- **`BackupController`** — `download` (WAL checkpoint → stream file as `application/octet-stream`), `restore` (multipart upload, validates SQLite magic bytes, stages to `pending.sqlite`), `confirm` (backs up current DB to `.bak`, replaces with staged file)
+- **Settings › Backup page** — download button; upload zone (dashed border, file picker); pending card with file size once staged; ConfirmDialog before apply; redirects to login after successful restore
+- **Safety checks** — magic byte validation (`SQLite format 3`), file-size sanity; staged file never overwrites live DB until explicitly confirmed
+
+## RSS Feeds (v0.2.0)
+
+- **`feed_enabled` flag** — `INTEGER DEFAULT 0` column on `collections` table; added via migration in `api.php`
+- **`FeedController`** — queries collection items, generates RSS 2.0 XML (title, link, pubDate, description from first text field); returns `Content-Type: application/rss+xml`; 403 if feed not enabled
+- **Schema editor toggle** — "RSS Feed" settings card after field list; toggle saves alongside field definitions via parallel `PUT /collections/{id}` call; shows public feed URL when enabled
+- **Test-site routing** — `/feed/{id}(.xml)?` matched in `test-site/router.php` before front-end routing
+
+## Empty States (v0.2.0)
+
+- **`EmptyState` component updated** — accepts both `description`/snippet `action` (original) and `message`/`onaction` string (legacy) patterns; `const desc = description || message` unifies rendering
+- **Applied to labels and folders list pages** — replaced plain "No X yet" text with full `<EmptyState>` component
+
+## Error Boundary (v0.2.0)
+
+- **`ErrorBoundary.svelte`** — wraps any child subtree; exposes `error` state and `reset()` function; renders optional `fallback` snippet with `{ error, reset }` for custom error UIs; shows a default card UI when no fallback is provided
+
+## Setup Wizard Banner (v0.2.0)
+
+- **Dashboard checklist** — three-step banner: create a collection, create a page, configure site URL; each step derived from live `stats` API response
+- **localStorage dismiss** — `sc_setup_dismissed` key; read on `onMount` to prevent flash; set on dismiss button click
+- **Auto-hides** — `setupDone` derived state hides banner once collections > 0 and pages > 0, regardless of dismiss state
+
+---
+
 ## Components Section (v0.1.5)
 
 - **Separate admin section** — Components live at `/admin/components`, distinct from Templates; sidebar entry with its own icon
