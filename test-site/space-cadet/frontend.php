@@ -3,14 +3,19 @@
  * Space Cadet CMS — Front-end Page Renderer
  *
  * Handles public-facing page requests by looking up the page by slug,
- * rendering it with its assigned template (if any), or falling back to
- * a plain HTML shell showing the page title and fields.
+ * rendering it with its assigned template (if any), or wrapping the page
+ * through the active theme layout, or falling back to a plain HTML shell.
  *
  * Invoked by test-site/router.php for any path that isn't the admin,
  * API, or a static file.
  *
  * URL format:  http://localhost:8888/{slug}
  * Home page:   http://localhost:8888/  → slug "home"
+ *
+ * Rendering priority:
+ *   1. Theme layout (when an active theme directory exists)
+ *   2. Legacy template (template_id — kept for backwards compat)
+ *   3. Fallback plain HTML shell
  */
 
 declare(strict_types=1);
@@ -24,11 +29,19 @@ require_once __DIR__ . '/models/Template.php';
 require_once __DIR__ . '/templates/Compiler.php';
 require_once __DIR__ . '/templates/Sandbox.php';
 require_once __DIR__ . '/templates/Engine.php';
+require_once __DIR__ . '/theme/ThemeLoader.php';
+require_once __DIR__ . '/theme/ThemeRenderer.php';
 
 // ── Check installation ────────────────────────────────────────────────────────
 if (!file_exists(SC_INSTALLED_LOCK)) {
     header('Location: /space-cadet/install.php');
     exit;
+}
+
+// ── Migration: pages.layout column ───────────────────────────────────────────
+$pageCols = array_column(Database::query("PRAGMA table_info(pages)"), 'name');
+if (!in_array('layout', $pageCols, true)) {
+    Database::execute("ALTER TABLE pages ADD COLUMN layout TEXT");
 }
 
 // ── Parse slug from URL ───────────────────────────────────────────────────────
@@ -58,7 +71,23 @@ $context = array_merge($fields, [
     'page'       => $page,
 ]);
 
-// ── Render with template, or fall back to plain HTML ─────────────────────────
+// ── Render: Theme layout → Legacy template → Fallback shell ──────────────────
+
+// 1. Try the active theme
+$themeName = ThemeLoader::activeThemeName();
+$loader    = ThemeLoader::forActiveTheme();
+
+if ($loader) {
+    $renderer = new ThemeRenderer($loader, $themeName);
+    $html     = $renderer->render($page);
+
+    if ($html !== '') {
+        echo $html;
+        exit;
+    }
+}
+
+// 2. Legacy template (template_id) — kept for backwards compatibility
 if (!empty($page['template_id'])) {
     $tpl = Template::findById((int) $page['template_id']);
     if ($tpl) {
@@ -68,7 +97,7 @@ if (!empty($page['template_id'])) {
     }
 }
 
-// No template assigned — render a plain shell so the page is still previewable
+// 3. No theme and no template — render a plain shell so the page is still previewable
 echo fallbackHtml($context);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

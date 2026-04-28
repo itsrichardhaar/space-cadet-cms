@@ -38,6 +38,7 @@ class PagesController {
             'status'      => 'draft',
             'parent_id'   => $p['parent_id']   ?? null,
             'template_id' => $p['template_id'] ?? null,
+            'layout'      => $p['layout']      ?? null,
             'meta_title'  => $p['meta_title']  ?? null,
             'meta_desc'   => $p['meta_desc']   ?? null,
             'fields'      => $p['fields']      ?? [],

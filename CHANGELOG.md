@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.1] — 2026-04-28
+
+### Added
+- Theme layout rendering — `ThemeLoader` scans `themes/{active}/layouts/` for available HTML layouts; `ThemeRenderer` compiles a page through its chosen layout via the Liquid pipeline; `{% include 'partials/...' %}` tags are inlined before compilation; `style.css` and `app.js` auto-injected into `<head>` when present in `themes/{active}/assets/`
+- `pages.layout` column (nullable TEXT) — migration in both `frontend.php` and `api.php`; `Page::create()` and `Page::update()` accept `layout`; `PagesController::duplicate()` preserves layout
+- Default theme — `themes/default/` with `layouts/default.html`, `partials/nav.html`, `partials/footer.html`, and `assets/style.css`
+- 12 unit tests in `tests/ThemeLoaderTest.php` covering layouts listing, layout resolution, partial inlining, directory traversal guard, and asset URL generation
+
+---
+
 ## [0.2.0] — 2026-04-27
 
 ### Added

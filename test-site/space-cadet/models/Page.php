@@ -24,8 +24,8 @@ class Page {
     public static function create(array $data): int {
         $now = time();
         Database::execute(
-            "INSERT INTO pages (title,slug,parent_id,status,template_id,author_id,sort_order,meta_title,meta_desc,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            [$data['title'],$data['slug'],$data['parent_id']??null,$data['status']??'draft',$data['template_id']??null,$data['author_id']??null,$data['sort_order']??0,$data['meta_title']??null,$data['meta_desc']??null,$data['published_at']??null,$now,$now]
+            "INSERT INTO pages (title,slug,parent_id,status,template_id,layout,author_id,sort_order,meta_title,meta_desc,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [$data['title'],$data['slug'],$data['parent_id']??null,$data['status']??'draft',$data['template_id']??null,$data['layout']??null,$data['author_id']??null,$data['sort_order']??0,$data['meta_title']??null,$data['meta_desc']??null,$data['published_at']??null,$now,$now]
         );
         $id = Database::lastInsertId();
         if (!empty($data['fields'])) self::upsertFields($id, $data['fields']);
@@ -33,7 +33,7 @@ class Page {
     }
     public static function update(int $id, array $data): void {
         $sets=[]; $params=[];
-        foreach(['title','slug','parent_id','status','template_id','sort_order','meta_title','meta_desc','published_at'] as $c) {
+        foreach(['title','slug','parent_id','status','template_id','layout','sort_order','meta_title','meta_desc','published_at'] as $c) {
             if(array_key_exists($c,$data)){$sets[]="{$c}=?";$params[]=$data[$c];}
         }
         $sets[]='updated_at=?'; $params[]=time(); $params[]=$id;

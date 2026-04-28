@@ -4,6 +4,15 @@ Maintained as features are built. Used for documentation generation.
 
 ---
 
+## Theme Layout Rendering (v0.2.1)
+
+- **`ThemeLoader`** (`php/theme/ThemeLoader.php`) — scans `themes/{active}/layouts/` for `.html` files; `layouts()` returns sorted names; `layoutPath()` resolves by name; `partial()` reads partial files with directory traversal guard; `assetUrl()` returns public URL for assets in `themes/{active}/assets/`; `forActiveTheme()` factory reads `active_theme` setting (defaults to `default`)
+- **`ThemeRenderer`** (`php/theme/ThemeRenderer.php`) — inlines `{% include 'partials/...' %}` tags before compilation; compiles through `Compiler::compile()`; runs through `Sandbox::run()` via a temp file in `SC_CACHE`; auto-injects `style.css` and `app.js` asset tags before `</head>`; falls back gracefully (returns `''`) when no layout exists
+- **`pages.layout` column** — nullable TEXT column; migration in both `frontend.php` and `api.php`; `Page::create()` and `Page::update()` include `layout` field; `PagesController::duplicate()` copies layout
+- **`frontend.php` rendering priority** — (1) theme layout, (2) legacy template_id, (3) fallback shell; clean 404 for unpublished/missing slugs unchanged
+- **Default theme** (`themes/default/`) — `layouts/default.html` with Liquid variables (`title`, `meta_title`, `meta_desc`, partials); `partials/nav.html`, `partials/footer.html`; `assets/style.css` minimal stylesheet
+- **Tests** (`tests/ThemeLoaderTest.php`) — 12 tests covering all ThemeLoader methods including traversal guard
+
 ## Revision History (v0.2.0)
 
 - **Automatic snapshots** — every `update()` in `PagesController` and `CollectionItemsController` calls `Revision::snapshot()` before writing; full entity JSON stored in the `revisions` table

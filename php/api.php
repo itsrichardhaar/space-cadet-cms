@@ -91,6 +91,12 @@ if (!in_array('feed_enabled', $collCols)) {
     Database::execute("ALTER TABLE collections ADD COLUMN feed_enabled INTEGER NOT NULL DEFAULT 0");
 }
 
+// Migration: pages.layout column
+$pageCols = array_column(Database::query("PRAGMA table_info(pages)"), 'name');
+if (!in_array('layout', $pageCols, true)) {
+    Database::execute("ALTER TABLE pages ADD COLUMN layout TEXT");
+}
+
 // Determine if this is a public content API request
 $action = $_GET['action'] ?? '';
 $isContentApi = str_starts_with($action, 'content/') || str_starts_with($action, 'submit/');

@@ -1,0 +1,48 @@
+/* Space Cadet CMS — Default Theme */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #1a1a1a;
+  background: #fff;
+  line-height: 1.6;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  padding: 20px 40px;
+  border-bottom: 1px solid #eee;
+}
+
+.site-nav__logo {
+  font-weight: 700;
+  font-size: 18px;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+main {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 24px;
+}
+
+.site-footer {
+  border-top: 1px solid #eee;
+  padding: 24px 40px;
+  font-size: 13px;
+  color: #888;
+  margin-top: 80px;
+}

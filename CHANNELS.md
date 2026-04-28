@@ -13,7 +13,7 @@ A channel is any live deployment of Space Cadet CMS. Log it here when it goes up
 
 | Channel | Environment | URL | Version | Status | Deployed |
 |---|---|---|---|---|---|
-| test-site | Local dev | http://localhost:8888 | 0.1.5 | Active | 2026-04-24 |
+| test-site | Local dev | http://localhost:8888 | 0.2.1 | Active | 2026-04-28 |
 
 ### Adding a Channel
 
