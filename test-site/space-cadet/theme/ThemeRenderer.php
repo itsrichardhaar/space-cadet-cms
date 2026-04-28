@@ -8,9 +8,10 @@
  * Rendering pipeline:
  *   1. Resolve the layout file (page.layout → default.html → fallback shell)
  *   2. Pre-process {% include 'partials/...' %} tags by inlining partial content
- *   3. Compile the resulting source through Compiler::compile()
- *   4. Inject auto-detected asset tags into <head>
- *   5. Run the compiled PHP through Sandbox::run()
+ *   3. Render block instances from page.blocks JSON (via BlockRegistry)
+ *   4. Compile the resulting source through Compiler::compile()
+ *   5. Inject auto-detected asset tags into <head>
+ *   6. Run the compiled PHP through Sandbox::run()
  */
 
 declare(strict_types=1);
@@ -56,12 +57,17 @@ class ThemeRenderer
 
         // ── 2. Build Liquid context ───────────────────────────────────────────
         $fields  = $page['fields'] ?? [];
+
+        // Render block instances into an HTML string for use as {{ blocks }} in layouts
+        $blocksHtml = $this->renderBlocks($page['blocks'] ?? []);
+
         $context = array_merge($fields, $extra, [
             'title'      => $page['title']               ?? '',
             'slug'       => $page['slug']                ?? '',
             'meta_title' => $page['meta_title'] ?: ($page['title'] ?? ''),
             'meta_desc'  => $page['meta_desc']           ?? '',
             'layout'     => $layoutName,
+            'blocks'     => $blocksHtml,
             'page'       => $page,
         ]);
 
@@ -80,6 +86,66 @@ class ThemeRenderer
 
         // Clean up temp file
         @unlink($compiledPath);
+
+        return $html;
+    }
+
+    /**
+     * Render an ordered array of block instances to an HTML string.
+     *
+     * Each instance has the shape: { "type": "hero", "data": { ... } }
+     *
+     * For each instance:
+     *   1. Look up the block definition in the theme's blocks/ directory
+     *   2. Pass instance data as Liquid context variables
+     *   3. Inline any {% include 'partials/...' %} in the block template
+     *   4. Compile and run through the Sandbox
+     *
+     * Missing block types emit a <!-- block: {type} not found --> comment
+     * rather than crashing.
+     *
+     * @param  array $blocks  Decoded blocks array from page.blocks JSON
+     * @return string         Concatenated rendered HTML for all block instances
+     */
+    public function renderBlocks(array $blocks): string
+    {
+        if (empty($blocks)) {
+            return '';
+        }
+
+        $blocksDir = $this->loader->themeDir() . '/blocks';
+        $html      = '';
+
+        foreach ($blocks as $instance) {
+            $type = (string) ($instance['type'] ?? '');
+            $data = (array)  ($instance['data']  ?? []);
+
+            if ($type === '') {
+                continue;
+            }
+
+            $def = BlockRegistry::get($type, $blocksDir);
+
+            if ($def === null) {
+                $html .= '<!-- block: ' . htmlspecialchars($type, ENT_QUOTES) . ' not found -->' . "\n";
+                continue;
+            }
+
+            // Build context from instance data (field values)
+            $blockContext = $data;
+
+            // Inline partials inside the block template
+            $templateSource = $this->inlinePartials($def['template']);
+
+            // Compile and run
+            $compiled     = Compiler::compile($templateSource);
+            $compiledPath = $this->writeTempCompiled($compiled);
+
+            $blockHtml = Sandbox::run($compiledPath, $blockContext);
+            @unlink($compiledPath);
+
+            $html .= $blockHtml;
+        }
 
         return $html;
     }

@@ -13,19 +13,26 @@ class Page {
         if (!$row) return null;
         $row['fields']    = self::getFields($id);
         $row['fieldDefs'] = self::getFieldDefs($id);
+        $row['blocks']    = isset($row['blocks']) && $row['blocks'] !== null
+            ? json_decode($row['blocks'], true) ?? []
+            : [];
         return $row;
     }
     public static function findBySlug(string $slug): ?array {
         $row = Database::queryOne("SELECT * FROM pages WHERE slug = ?", [$slug]);
         if (!$row) return null;
         $row['fields'] = self::getFields($row['id']);
+        $row['blocks'] = isset($row['blocks']) && $row['blocks'] !== null
+            ? json_decode($row['blocks'], true) ?? []
+            : [];
         return $row;
     }
     public static function create(array $data): int {
         $now = time();
+        $blocksJson = isset($data['blocks']) ? json_encode($data['blocks']) : null;
         Database::execute(
-            "INSERT INTO pages (title,slug,parent_id,status,template_id,layout,author_id,sort_order,meta_title,meta_desc,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            [$data['title'],$data['slug'],$data['parent_id']??null,$data['status']??'draft',$data['template_id']??null,$data['layout']??null,$data['author_id']??null,$data['sort_order']??0,$data['meta_title']??null,$data['meta_desc']??null,$data['published_at']??null,$now,$now]
+            "INSERT INTO pages (title,slug,parent_id,status,template_id,layout,blocks,author_id,sort_order,meta_title,meta_desc,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [$data['title'],$data['slug'],$data['parent_id']??null,$data['status']??'draft',$data['template_id']??null,$data['layout']??null,$blocksJson,$data['author_id']??null,$data['sort_order']??0,$data['meta_title']??null,$data['meta_desc']??null,$data['published_at']??null,$now,$now]
         );
         $id = Database::lastInsertId();
         if (!empty($data['fields'])) self::upsertFields($id, $data['fields']);
@@ -35,6 +42,10 @@ class Page {
         $sets=[]; $params=[];
         foreach(['title','slug','parent_id','status','template_id','layout','sort_order','meta_title','meta_desc','published_at'] as $c) {
             if(array_key_exists($c,$data)){$sets[]="{$c}=?";$params[]=$data[$c];}
+        }
+        if(array_key_exists('blocks',$data)){
+            $sets[]='blocks=?';
+            $params[]=$data['blocks']!==null ? json_encode($data['blocks']) : null;
         }
         $sets[]='updated_at=?'; $params[]=time(); $params[]=$id;
         Database::execute("UPDATE pages SET ".implode(',',$sets)." WHERE id=?",$params);

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] — 2026-04-28
+
+### Added
+- `BlockRegistry` — scans `themes/{active}/blocks/` for custom block HTML files (YAML frontmatter + Liquid template); `parse()` extracts name, icon, and fields (deprecated fields excluded); `get()` looks up a single block by type; `scan()` returns all valid definitions; malformed files skipped silently
+- `pages.blocks` column (nullable TEXT JSON) — migration in `frontend.php`; `Page::create()` and `Page::update()` JSON-encode on write; `Page::findById()` and `Page::findBySlug()` decode on read
+- `ThemeRenderer::renderBlocks()` — iterates page block instances, resolves each type via `BlockRegistry::get()`, inlines partials, compiles and runs through Sandbox; missing types emit `<!-- block: {type} not found -->` comment
+- `{{ blocks }}` variable in layout context — rendered block HTML injected into the Liquid context so layouts can output `{{{ blocks }}}` where block content should appear
+- `themes/default/blocks/hero.html` — sample hero block with headline, subheadline, and image fields
+- 15 unit tests in `tests/BlockRegistryTest.php` covering frontmatter parsing, deprecated field exclusion, malformed YAML skipping, empty directory, type resolution, and path traversal guard
+
+---
+
 ## [0.2.1] — 2026-04-28
 
 ### Added

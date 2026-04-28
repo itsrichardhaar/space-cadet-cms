@@ -31,6 +31,7 @@ require_once __DIR__ . '/templates/Sandbox.php';
 require_once __DIR__ . '/templates/Engine.php';
 require_once __DIR__ . '/theme/ThemeLoader.php';
 require_once __DIR__ . '/theme/ThemeRenderer.php';
+require_once __DIR__ . '/theme/BlockRegistry.php';
 
 // ── Check installation ────────────────────────────────────────────────────────
 if (!file_exists(SC_INSTALLED_LOCK)) {
@@ -38,10 +39,13 @@ if (!file_exists(SC_INSTALLED_LOCK)) {
     exit;
 }
 
-// ── Migration: pages.layout column ───────────────────────────────────────────
+// ── Migrations ────────────────────────────────────────────────────────────────
 $pageCols = array_column(Database::query("PRAGMA table_info(pages)"), 'name');
 if (!in_array('layout', $pageCols, true)) {
     Database::execute("ALTER TABLE pages ADD COLUMN layout TEXT");
+}
+if (!in_array('blocks', $pageCols, true)) {
+    Database::execute("ALTER TABLE pages ADD COLUMN blocks TEXT");
 }
 
 // ── Parse slug from URL ───────────────────────────────────────────────────────

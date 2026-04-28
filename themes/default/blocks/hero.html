@@ -1,0 +1,14 @@
+---
+name: Hero
+icon: layout
+fields:
+  - { name: headline, type: text, label: Headline }
+  - { name: subheadline, type: text, label: Subheadline }
+  - { name: image, type: media, label: Background Image }
+---
+<section class="block-hero">
+  <div class="block-hero__inner">
+    <h1 class="block-hero__headline">{{ headline }}</h1>
+    {% if subheadline %}<p class="block-hero__subheadline">{{ subheadline }}</p>{% endif %}
+  </div>
+</section>
