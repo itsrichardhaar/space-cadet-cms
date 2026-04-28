@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.3] — 2026-04-28
+
+### Added
+- Live Builder route — `/admin/builder/[pageId]` full-viewport Svelte 5 route with top bar, device toggle (desktop/tablet/mobile: 1280px/768px/375px), block list sidebar, and iframe canvas; empty-state shown when page has no blocks
+- Auth-gated preview endpoint — `?_sc_preview=1` on any page URL requires a valid session (returns 401 JSON if unauthenticated); authenticated users can preview draft pages
+- Preview mode rendering — `ThemeRenderer::render()` accepts `$previewMode = true`; post-processes rendered HTML to add `data-block-index` and `data-block-type` attributes to block wrapper elements; injects `window.__SC_PREVIEW__ = true` and `window.__SC_BLOCKS__` JSON before `</body>`; production renders contain none of these attributes
+- 5 unit tests in `tests/PreviewModeTest.php` covering preview attribute injection, `__SC_BLOCKS__` injection, production mode cleanliness, empty-blocks preview, and multi-block index correctness
+
+---
+
 ## [0.2.2] — 2026-04-28
 
 ### Added

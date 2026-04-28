@@ -32,11 +32,12 @@ class ThemeRenderer
     /**
      * Render a page array through its layout and return the HTML string.
      *
-     * @param  array $page     Row from Page::findBySlug / Page::findById (includes 'fields')
-     * @param  array $extra    Additional Liquid context variables (optional)
-     * @return string          Rendered HTML
+     * @param  array $page        Row from Page::findBySlug / Page::findById (includes 'fields')
+     * @param  array $extra       Additional Liquid context variables (optional)
+     * @param  bool  $previewMode When true, injects data-block-* attributes and window.__SC_BLOCKS__ script
+     * @return string             Rendered HTML
      */
-    public function render(array $page, array $extra = []): string
+    public function render(array $page, array $extra = [], bool $previewMode = false): string
     {
         // ── 1. Resolve layout ─────────────────────────────────────────────────
         $layoutName = $page['layout'] ?? 'default';
@@ -59,7 +60,7 @@ class ThemeRenderer
         $fields  = $page['fields'] ?? [];
 
         // Render block instances into an HTML string for use as {{ blocks }} in layouts
-        $blocksHtml = $this->renderBlocks($page['blocks'] ?? []);
+        $blocksHtml = $this->renderBlocks($page['blocks'] ?? [], $previewMode);
 
         $context = array_merge($fields, $extra, [
             'title'      => $page['title']               ?? '',
@@ -87,6 +88,52 @@ class ThemeRenderer
         // Clean up temp file
         @unlink($compiledPath);
 
+        // ── 6. Preview-mode post-processing ──────────────────────────────────
+        if ($previewMode) {
+            $html = $this->injectPreviewData($html, $page['blocks'] ?? []);
+        }
+
+        return $html;
+    }
+
+    /**
+     * Inject preview-mode metadata into the rendered HTML:
+     * - Adds data-block-index and data-block-type to outermost block wrapper elements
+     * - Injects window.__SC_PREVIEW__ and window.__SC_BLOCKS__ before </body>
+     *
+     * Block wrappers are identified by the class "block-{type}" on the outermost element.
+     */
+    private function injectPreviewData(string $html, array $blocks): string
+    {
+        // Add data-block-index and data-block-type to each block's outermost element.
+        // We match the first opening tag that has class="block-{type}" (or class containing it).
+        foreach ($blocks as $index => $instance) {
+            $type = (string) ($instance['type'] ?? '');
+            if ($type === '') continue;
+
+            $safeType  = preg_quote($type, '/');
+            $safeIndex = (int) $index;
+
+            // Match the first opening tag that has class containing "block-{type}" and inject data attrs.
+            // Limit to 1 replacement so only the outermost/first wrapper for this block is annotated.
+            $safeTypeHtml = htmlspecialchars($type, ENT_QUOTES);
+            $html = preg_replace_callback(
+                '/<([a-zA-Z][a-zA-Z0-9]*)\s([^>]*class="[^"]*\bblock-' . $safeType . '\b[^"]*"[^>]*)>/m',
+                static function (array $m) use ($safeIndex, $safeTypeHtml): string {
+                    $tag   = $m[1];
+                    $attrs = $m[2];
+                    return "<{$tag} {$attrs} data-block-index=\"{$safeIndex}\" data-block-type=\"{$safeTypeHtml}\">";
+                },
+                $html,
+                1 // Limit to first match only — annotates the outermost wrapper element
+            ) ?? $html;
+        }
+
+        // Inject preview script before </body>
+        $blocksJson   = json_encode($blocks, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $previewScript = "\n<script>window.__SC_PREVIEW__ = true; window.__SC_BLOCKS__ = {$blocksJson};</script>";
+        $html          = str_ireplace('</body>', $previewScript . "\n</body>", $html);
+
         return $html;
     }
 
@@ -104,10 +151,11 @@ class ThemeRenderer
      * Missing block types emit a <!-- block: {type} not found --> comment
      * rather than crashing.
      *
-     * @param  array $blocks  Decoded blocks array from page.blocks JSON
-     * @return string         Concatenated rendered HTML for all block instances
+     * @param  array $blocks       Decoded blocks array from page.blocks JSON
+     * @param  bool  $previewMode  Unused here (preview data added in post-process pass)
+     * @return string              Concatenated rendered HTML for all block instances
      */
-    public function renderBlocks(array $blocks): string
+    public function renderBlocks(array $blocks, bool $previewMode = false): string
     {
         if (empty($blocks)) {
             return '';
