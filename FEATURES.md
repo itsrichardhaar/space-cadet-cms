@@ -4,6 +4,18 @@ Maintained as features are built. Used for documentation generation.
 
 ---
 
+## Live Builder — PostMessage Field Editing (v0.2.4)
+
+- **`PreviewBridge.js`** (`php/theme/preview-bridge.js`) — inline script injected into every preview-mode render; listens for `field:update` messages and updates `[data-field="name"]` elements via `textContent`/`src`; sends `block:select`, `block:hover`, `block:unhover` to parent; applies CSS outline on hover and `.sc-block--highlighted` class on `[data-block-index]` elements
+- **`ThemeRenderer::injectPreviewBridge()`** — reads bridge JS from `__DIR__` and embeds inline before `</body>` (no external HTTP request required)
+- **`GET api.php?action=theme`** and **`GET api.php?action=theme/blocks`** — `ThemeController` endpoints returning active theme name, layouts, and block schemas (template source stripped); both require editor role
+- **`FieldEditor.svelte`** (`src/lib/components/builder/FieldEditor.svelte`) — renders correct input per field type: text, textarea, number, toggle (custom track/thumb), color (picker + hex), select, richtext, media, code; fires `onchange(value)` on every input event
+- **Builder sidebar field panel** — clicking a block row selects it; schema fields render below the block list; deselect via second click or ✕ button; selected row has left accent border
+- **DOM injection flow** — simple types (text/textarea/number/toggle/color/select) post `field:update` immediately; richtext and media trigger full iframe `src` reload after save
+- **Debounced save** — field changes flush to `PUT pages/{id}` after 500 ms idle; "Saving…" indicator in top bar
+- **Block selection from iframe** — clicking a block in the preview sends `block:select` via postMessage; builder highlights the corresponding sidebar row
+- **Tests** (`tests/PreviewBridgeInjectionTest.php`) — 4 tests: preview mode contains `__SC_PREVIEW__`, bridge postMessage logic, `data-block-index` presence, and production mode cleanliness
+
 ## Theme Layout Rendering (v0.2.1)
 
 - **`ThemeLoader`** (`php/theme/ThemeLoader.php`) — scans `themes/{active}/layouts/` for `.html` files; `layouts()` returns sorted names; `layoutPath()` resolves by name; `partial()` reads partial files with directory traversal guard; `assetUrl()` returns public URL for assets in `themes/{active}/assets/`; `forActiveTheme()` factory reads `active_theme` setting (defaults to `default`)

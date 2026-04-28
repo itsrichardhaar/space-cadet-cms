@@ -24,6 +24,10 @@ require_once __DIR__ . '/config/app.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/core/Database.php';
 require_once __DIR__ . '/core/Cache.php';
+require_once __DIR__ . '/core/Request.php';
+require_once __DIR__ . '/core/Response.php';
+require_once __DIR__ . '/core/Auth.php';
+require_once __DIR__ . '/models/User.php';
 require_once __DIR__ . '/models/Page.php';
 require_once __DIR__ . '/models/Template.php';
 require_once __DIR__ . '/templates/Compiler.php';
@@ -37,6 +41,19 @@ require_once __DIR__ . '/theme/BlockRegistry.php';
 if (!file_exists(SC_INSTALLED_LOCK)) {
     header('Location: /space-cadet/install.php');
     exit;
+}
+
+// ── Preview mode authentication ───────────────────────────────────────────────
+$previewMode = isset($_GET['_sc_preview']) && $_GET['_sc_preview'] === '1';
+if ($previewMode) {
+    $req = new Request();
+    Auth::init($req);
+    if (!Auth::check()) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'error' => ['message' => 'Unauthorized', 'code' => 'UNAUTHORIZED']]);
+        exit;
+    }
 }
 
 // ── Migrations ────────────────────────────────────────────────────────────────
@@ -61,7 +78,8 @@ if (!preg_match('/^[a-z0-9][a-z0-9\-\/]*$/', $slug)) {
 // ── Look up page ──────────────────────────────────────────────────────────────
 $page = Page::findBySlug($slug);
 
-if (!$page || $page['status'] !== 'published') {
+// In preview mode authenticated users can see draft pages
+if (!$page || (!$previewMode && $page['status'] !== 'published')) {
     send404($slug);
 }
 
@@ -83,7 +101,7 @@ $loader    = ThemeLoader::forActiveTheme();
 
 if ($loader) {
     $renderer = new ThemeRenderer($loader, $themeName);
-    $html     = $renderer->render($page);
+    $html     = $renderer->render($page, [], $previewMode);
 
     if ($html !== '') {
         echo $html;

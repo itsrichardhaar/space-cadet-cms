@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.4] — 2026-04-28
+
+### Added
+- `PreviewBridge.js` — inline script injected into preview-mode renders; handles `field:update` postMessage for DOM-level text/color/toggle injection without a page reload; sends `block:select`, `block:hover`, `block:unhover` messages to the parent builder; adds CSS hover/highlight outlines on `[data-block-index]` elements
+- `ThemeRenderer::injectPreviewBridge()` — reads `preview-bridge.js` from `__DIR__` and embeds it inline before `</body>` in preview mode
+- `GET api.php?action=theme` — returns active theme name, layout list, and block schemas (template source stripped); requires editor role
+- `GET api.php?action=theme/blocks` — returns full block schema array for active theme; used by builder sidebar to render field editors
+- `ThemeController` — new controller wiring the two theme endpoints; template source stripped from API output
+- `FieldEditor.svelte` — builder-specific field editor component; renders text, textarea, number, toggle, color, select, richtext, media, and code inputs with `onchange` callback
+- Builder sidebar — clicking a block row selects it; selected block's schema fields render in an inline field panel below the block list; clicking again or pressing ✕ deselects
+- postMessage integration in builder — field changes post `field:update` to iframe for DOM injection (text/textarea/number/toggle/color/select); richtext and media schedule a full iframe src reload after save; block clicks in the preview select the corresponding row in the sidebar
+- Debounced save — field changes save to `PUT pages/{id}` after 500 ms idle, preventing per-keystroke requests; "Saving…" indicator in top bar
+- Block schema parallel load — builder fetches page data and theme blocks in a single `Promise.all` on mount
+- 4 unit tests in `tests/PreviewBridgeInjectionTest.php` covering bridge injection in preview mode and absence in production mode
+
+---
+
 ## [0.2.3] — 2026-04-28
 
 ### Added

@@ -65,6 +65,9 @@ require_once __DIR__ . '/controllers/SettingsController.php';
 require_once __DIR__ . '/controllers/RevisionsController.php';
 require_once __DIR__ . '/controllers/BackupController.php';
 require_once __DIR__ . '/controllers/FeedController.php';
+require_once __DIR__ . '/theme/ThemeLoader.php';
+require_once __DIR__ . '/theme/BlockRegistry.php';
+require_once __DIR__ . '/controllers/ThemeController.php';
 
 // One-time migration: rename forge_jobs → blueprint_jobs (Blueprint AI rename)
 if (Database::queryOne("SELECT name FROM sqlite_master WHERE type='table' AND name='forge_jobs'")) {

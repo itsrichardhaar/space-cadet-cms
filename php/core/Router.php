@@ -233,6 +233,10 @@ class Router {
             'members/{id}:PUT'               => [MembersController::class,        'update',             [0]],
             'members/{id}:DELETE'            => [MembersController::class,        'delete',             [0]],
 
+            // ── Theme ────────────────────────────────────────────────────
+            'theme:GET'                      => [ThemeController::class,          'show',               []],
+            'theme/blocks:GET'               => [ThemeController::class,          'blocks',             []],
+
             // ── Settings ─────────────────────────────────────────────────
             'settings:GET'                   => [SettingsController::class,       'list',               []],
             'settings:PUT'                   => [SettingsController::class,       'update',             []],

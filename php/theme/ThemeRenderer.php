@@ -91,6 +91,7 @@ class ThemeRenderer
         // ── 6. Preview-mode post-processing ──────────────────────────────────
         if ($previewMode) {
             $html = $this->injectPreviewData($html, $page['blocks'] ?? []);
+            $html = $this->injectPreviewBridge($html);
         }
 
         return $html;
@@ -133,6 +134,28 @@ class ThemeRenderer
         $blocksJson   = json_encode($blocks, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $previewScript = "\n<script>window.__SC_PREVIEW__ = true; window.__SC_BLOCKS__ = {$blocksJson};</script>";
         $html          = str_ireplace('</body>', $previewScript . "\n</body>", $html);
+
+        return $html;
+    }
+
+    /**
+     * Inject the PreviewBridge script inline before </body>.
+     *
+     * Reads preview-bridge.js from the same directory as this class file
+     * and embeds it as an inline <script> tag so no external HTTP request
+     * is needed and no path configuration is required.
+     */
+    private function injectPreviewBridge(string $html): string
+    {
+        $bridgePath = __DIR__ . '/preview-bridge.js';
+
+        if (!file_exists($bridgePath)) {
+            return $html;
+        }
+
+        $js     = (string) file_get_contents($bridgePath);
+        $script = "\n<script>\n{$js}\n</script>";
+        $html   = str_ireplace('</body>', $script . "\n</body>", $html);
 
         return $html;
     }

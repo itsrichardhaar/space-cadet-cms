@@ -1,9 +1,10 @@
 <script>
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { api } from '$lib/api.js';
   import { userStore } from '$lib/stores/user.svelte.js';
+  import FieldEditor from '$lib/components/builder/FieldEditor.svelte';
 
   // ── State ─────────────────────────────────────────────────────────────────
 
@@ -11,7 +12,16 @@
   let pageData   = $state(null);
   let loading    = $state(true);
   let notFound   = $state(false);
+  let saving     = $state(false);
   let device     = $state('desktop'); // 'desktop' | 'tablet' | 'mobile'
+
+  // Block interaction state
+  let selectedBlockIndex = $state(null);
+  let blocks             = $state([]);   // mutable copy of pageData.blocks
+  let blockSchemas       = $state({});   // map of block type → {name, icon, fields}
+
+  // Iframe ref
+  let iframeEl = $state(null);
 
   const DEVICES = [
     { id: 'desktop', label: 'Desktop', width: '100%'  },
@@ -19,8 +29,7 @@
     { id: 'mobile',  label: 'Mobile',  width: '375px' },
   ];
 
-  // Preview URL: use window.location.origin to construct the URL.
-  // The page is at /{slug}?_sc_preview=1
+  // Preview URL: page at /{slug}?_sc_preview=1
   let previewUrl = $derived(
     pageData ? `${window.location.origin}/${pageData.slug}?_sc_preview=1` : ''
   );
@@ -29,9 +38,18 @@
     DEVICES.find(d => d.id === device)?.width ?? '100%'
   );
 
-  let blocks = $derived(
-    Array.isArray(pageData?.blocks) ? pageData.blocks : []
-  );
+  let hasBlocks = $derived(blocks.length > 0);
+
+  // Currently selected block's schema fields
+  let selectedSchema = $derived.by(() => {
+    if (selectedBlockIndex === null) return null;
+    const block = blocks[selectedBlockIndex];
+    if (!block) return null;
+    return blockSchemas[block.type] ?? null;
+  });
+
+  // Debounce timer ref
+  let saveTimer = null;
 
   // ── Auth guard ────────────────────────────────────────────────────────────
 
@@ -41,6 +59,12 @@
       return;
     }
     load();
+    window.addEventListener('message', onIframeMessage);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener('message', onIframeMessage);
+    if (saveTimer) clearTimeout(saveTimer);
   });
 
   $effect(() => {
@@ -48,19 +72,154 @@
     if (userStore.isLoggedIn) load();
   });
 
-  // ── Load page ─────────────────────────────────────────────────────────────
+  // ── Load page + block schemas ─────────────────────────────────────────────
 
   async function load() {
     loading  = true;
     notFound = false;
+    selectedBlockIndex = null;
     try {
-      const res = await api.get(`pages/${pageId}`);
-      if (!res.data) { notFound = true; return; }
-      pageData = res.data;
+      const [pageRes, themeRes] = await Promise.all([
+        api.get(`pages/${pageId}`),
+        api.get('theme/blocks').catch(() => ({ data: [] })),
+      ]);
+
+      if (!pageRes.data) { notFound = true; return; }
+      pageData = pageRes.data;
+
+      // Mutable local blocks copy
+      blocks = Array.isArray(pageData.blocks) ? structuredClone(pageData.blocks) : [];
+
+      // Build blockSchemas map from theme API
+      const schemaMap = {};
+      for (const b of (themeRes.data ?? [])) {
+        schemaMap[b.type] = b;
+      }
+      blockSchemas = schemaMap;
+
     } catch (e) {
       if (e.status === 404) notFound = true;
     } finally {
       loading = false;
+    }
+  }
+
+  // ── Select a block ────────────────────────────────────────────────────────
+
+  function selectBlock(index) {
+    selectedBlockIndex = index;
+    // Highlight in iframe
+    postToIframe({ type: 'block:highlight', blockIndex: index });
+  }
+
+  function deselectBlock() {
+    selectedBlockIndex = null;
+    postToIframe({ type: 'block:unhighlight' });
+  }
+
+  // ── postMessage helpers ───────────────────────────────────────────────────
+
+  function postToIframe(msg) {
+    if (iframeEl?.contentWindow) {
+      iframeEl.contentWindow.postMessage(msg, '*');
+    }
+  }
+
+  // Messages from the iframe (PreviewBridge)
+  function onIframeMessage(e) {
+    const msg = e.data;
+    if (!msg || typeof msg !== 'object') return;
+
+    switch (msg.type) {
+      case 'block:select':
+        selectBlock(msg.blockIndex);
+        break;
+      case 'block:hover':
+        postToIframe({ type: 'block:highlight', blockIndex: msg.blockIndex });
+        break;
+      case 'block:unhover':
+        // Only remove if it's not the selected block
+        if (msg.blockIndex !== selectedBlockIndex) {
+          postToIframe({ type: 'block:unhighlight' });
+          if (selectedBlockIndex !== null) {
+            postToIframe({ type: 'block:highlight', blockIndex: selectedBlockIndex });
+          }
+        }
+        break;
+    }
+  }
+
+  // ── Field change handler ──────────────────────────────────────────────────
+
+  // "Simple" types that support DOM injection (no reload needed)
+  const INJECTION_TYPES = new Set(['text', 'textarea', 'number', 'toggle', 'color', 'select']);
+  // "Heavy" types that require full iframe reload
+  const RELOAD_TYPES    = new Set(['richtext', 'media', 'code', 'repeater', 'relation']);
+
+  function onFieldChange(fieldName, value) {
+    if (selectedBlockIndex === null) return;
+
+    // Update local state
+    blocks[selectedBlockIndex] = {
+      ...blocks[selectedBlockIndex],
+      data: {
+        ...(blocks[selectedBlockIndex].data ?? {}),
+        [fieldName]: value,
+      },
+    };
+
+    // Determine field type from schema
+    const schema   = selectedSchema;
+    const fieldDef = schema?.fields?.find(f => f.name === fieldName);
+    const fType    = fieldDef?.type ?? 'text';
+
+    if (INJECTION_TYPES.has(fType)) {
+      // DOM injection — no reload
+      postToIframe({
+        type:       'field:update',
+        blockIndex: selectedBlockIndex,
+        field:      fieldName,
+        value:      String(value ?? ''),
+      });
+    }
+
+    // Always debounce-save (regardless of injection vs reload)
+    scheduleSave(RELOAD_TYPES.has(fType));
+  }
+
+  // ── Debounced save ────────────────────────────────────────────────────────
+
+  function scheduleSave(reloadAfter = false) {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveBlocks(reloadAfter);
+    }, 500);
+  }
+
+  async function saveBlocks(reloadAfter = false) {
+    if (!pageData) return;
+    saving = true;
+    try {
+      await api.put(`pages/${pageId}`, { blocks });
+      if (reloadAfter && iframeEl) {
+        // Full reload for richtext/media changes
+        iframeEl.src = previewUrl;
+      }
+    } catch (_) {
+      // Fail silently — builder edits are soft-saved
+    } finally {
+      saving = false;
+    }
+  }
+
+  // ── Iframe load — re-apply highlight after reload ─────────────────────────
+
+  function onIframeLoad() {
+    if (selectedBlockIndex !== null) {
+      // Brief delay to let PreviewBridge initialize
+      setTimeout(() => {
+        postToIframe({ type: 'block:highlight', blockIndex: selectedBlockIndex });
+      }, 80);
     }
   }
 </script>
@@ -95,6 +254,9 @@
     </div>
 
     <div class="topbar__right">
+      {#if saving}
+        <span class="topbar__saving">Saving…</span>
+      {/if}
       {#if pageData}
         <a
           href="/admin/pages/{pageId}"
@@ -109,33 +271,88 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar__header">
-        <span class="sidebar__label">Blocks</span>
-      </div>
 
       {#if loading}
+        <div class="sidebar__header">
+          <span class="sidebar__label">Blocks</span>
+        </div>
         <div class="sidebar__state">
           <span class="sidebar__hint">Loading…</span>
         </div>
+
       {:else if notFound}
+        <div class="sidebar__header">
+          <span class="sidebar__label">Blocks</span>
+        </div>
         <div class="sidebar__state">
           <span class="sidebar__hint">Page not found.</span>
         </div>
-      {:else if blocks.length === 0}
+
+      {:else if !hasBlocks}
+        <div class="sidebar__header">
+          <span class="sidebar__label">Blocks</span>
+        </div>
         <div class="sidebar__state sidebar__state--empty">
           <p class="sidebar__empty-title">No blocks yet</p>
           <p class="sidebar__empty-hint">Add one to get started.</p>
         </div>
+
       {:else}
+        <!-- Block list -->
+        <div class="sidebar__header">
+          <span class="sidebar__label">Blocks</span>
+        </div>
         <ul class="block-list">
           {#each blocks as block, i}
-            <li class="block-row">
-              <span class="block-row__index">{i + 1}</span>
-              <span class="block-row__type">{block.type}</span>
+            <li class="block-row" class:block-row--selected={selectedBlockIndex === i}>
+              <button
+                class="block-row__btn"
+                onclick={() => selectedBlockIndex === i ? deselectBlock() : selectBlock(i)}
+              >
+                <span class="block-row__index">{i + 1}</span>
+                <span class="block-row__type">{blockSchemas[block.type]?.name ?? block.type}</span>
+                {#if selectedBlockIndex === i}
+                  <span class="block-row__chevron">›</span>
+                {/if}
+              </button>
             </li>
           {/each}
         </ul>
+
+        <!-- Field editors for selected block -->
+        {#if selectedBlockIndex !== null && selectedSchema}
+          <div class="field-panel">
+            <div class="field-panel__header">
+              <span class="field-panel__title">{selectedSchema.name ?? blocks[selectedBlockIndex]?.type}</span>
+              <button class="field-panel__close" onclick={deselectBlock} title="Close">✕</button>
+            </div>
+            <div class="field-panel__fields">
+              {#if selectedSchema.fields?.length > 0}
+                {#each selectedSchema.fields as fieldDef}
+                  <FieldEditor
+                    {fieldDef}
+                    value={blocks[selectedBlockIndex]?.data?.[fieldDef.name] ?? ''}
+                    onchange={(val) => onFieldChange(fieldDef.name, val)}
+                  />
+                {/each}
+              {:else}
+                <p class="field-panel__hint">This block has no editable fields.</p>
+              {/if}
+            </div>
+          </div>
+        {:else if selectedBlockIndex !== null}
+          <div class="field-panel">
+            <div class="field-panel__header">
+              <span class="field-panel__title">{blocks[selectedBlockIndex]?.type}</span>
+              <button class="field-panel__close" onclick={deselectBlock} title="Close">✕</button>
+            </div>
+            <div class="field-panel__fields">
+              <p class="field-panel__hint">No schema found for this block.</p>
+            </div>
+          </div>
+        {/if}
       {/if}
+
     </aside>
 
     <!-- Canvas -->
@@ -148,17 +365,19 @@
         <div class="canvas__placeholder">
           <span class="canvas__hint">Page not found.</span>
         </div>
-      {:else if blocks.length === 0}
+      {:else if !hasBlocks}
         <div class="canvas__placeholder canvas__placeholder--empty">
           <p class="canvas__empty-title">No blocks yet — add one to get started.</p>
         </div>
       {:else}
         <div class="canvas__frame-wrap" style="max-width: {iframeWidth};">
           <iframe
+            bind:this={iframeEl}
             class="canvas__iframe"
             src={previewUrl}
             title="Page preview"
             sandbox="allow-same-origin allow-scripts"
+            onload={onIframeLoad}
           ></iframe>
         </div>
       {/if}
@@ -271,6 +490,11 @@
     justify-content: flex-end;
   }
 
+  .topbar__saving {
+    font-size: 12px;
+    color: var(--sc-text-muted, #888);
+  }
+
   .topbar__edit-link {
     font-size: 12px;
     color: var(--sc-text-muted, #888);
@@ -300,6 +524,7 @@
   .sidebar__header {
     padding: 14px 16px 8px;
     border-bottom: 1px solid var(--sc-border, #e8e8e6);
+    flex-shrink: 0;
   }
 
   .sidebar__label {
@@ -337,20 +562,35 @@
     margin: 0;
   }
 
+  /* ── Block list ──────────────────────────────────────────────────────────── */
   .block-list {
     list-style: none;
     padding: 8px 0;
     margin: 0;
+    flex-shrink: 0;
   }
 
   .block-row {
+    border-left: 2px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .block-row:hover { background: var(--sc-surface-2, #f5f5f3); }
+  .block-row--selected {
+    background: var(--sc-surface-2, #f5f5f3);
+    border-left-color: var(--sc-accent, #4f46e5);
+  }
+
+  .block-row__btn {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px 16px;
-    cursor: default;
+    width: 100%;
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-align: left;
   }
-  .block-row:hover { background: var(--sc-surface-2, #f5f5f3); }
 
   .block-row__index {
     font-size: 11px;
@@ -365,6 +605,60 @@
     font-size: 13px;
     color: var(--sc-text, #1a1a1a);
     font-weight: 500;
+    flex: 1;
+  }
+
+  .block-row__chevron {
+    font-size: 14px;
+    color: var(--sc-text-muted, #888);
+  }
+
+  /* ── Field panel ─────────────────────────────────────────────────────────── */
+  .field-panel {
+    border-top: 1px solid var(--sc-border, #e8e8e6);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .field-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid var(--sc-border, #e8e8e6);
+  }
+
+  .field-panel__title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sc-text-muted, #888);
+  }
+
+  .field-panel__close {
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: var(--sc-text-dim, #bbb);
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+    border-radius: 3px;
+  }
+  .field-panel__close:hover { color: var(--sc-text, #1a1a1a); background: var(--sc-surface-2, #f5f5f3); }
+
+  .field-panel__fields {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .field-panel__hint {
+    font-size: 12px;
+    color: var(--sc-text-muted, #888);
+    margin: 0;
   }
 
   /* ── Canvas ──────────────────────────────────────────────────────────────── */
